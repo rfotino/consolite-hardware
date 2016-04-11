@@ -92,14 +92,14 @@ NET "seven_seg_en[0]" LOC = B2 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST
 ###############################################################################
 NET "hsync"  LOC = B12 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
 NET "vsync"  LOC = A12 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "rgb[7]" LOC = A11 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "rgb[6]" LOC = B11 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "rgb[5]" LOC = C11 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "rgb[4]" LOC = A10 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "rgb[3]" LOC = C10 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "rgb[2]" LOC = C9  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "rgb[1]" LOC = B9  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "rgb[0]" LOC = A9  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "rgb[7]" LOC = C9  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "rgb[6]" LOC = B9  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "rgb[5]" LOC = A9  | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "rgb[4]" LOC = C11 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "rgb[3]" LOC = A10 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "rgb[2]" LOC = C10 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "rgb[1]" LOC = A11 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "rgb[0]" LOC = B11 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
 
 ###############################################################################
 #                           HEADER P6                                         #
