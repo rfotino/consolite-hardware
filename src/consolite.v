@@ -5,6 +5,10 @@ module consolite
    // 7-segment display outputs
    output [7:0]  seven_seg,
    output [2:0]  seven_seg_en,
+   // VGA display outputs
+   output        hsync,
+   output        vsync,
+   output [7:0]  rgb,
    // LPDDR RAM inputs and outputs
    inout [15:0]  mcb3_dram_dq,
    output [12:0] mcb3_dram_a,
@@ -61,6 +65,15 @@ module consolite
       .mcb3_error(mcb3_error),
       .seven_seg(seven_seg),
       .seven_seg_en(seven_seg_en)
+      );
+
+   // The VGA display controller
+   vga_display vga_display_
+     (
+      .clk(clk),
+      .hsync(hsync),
+      .vsync(vsync),
+      .rgb(rgb)
       );
 
    // Create an instance of the LPDDR memory interface
