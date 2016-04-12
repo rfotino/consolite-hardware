@@ -56,13 +56,21 @@ module consolite
    wire          lpram_r_overflow;
    wire          lpram_r_error;
 
-   // The 7-segment display for displaying state/error information
-   // to the user
+   // Determines the digits for the 7-segment display,
+   // based on status/error conditions
+   wire [11:0]    seg_digits;
+   seg_status seg_status_
+     (
+      .mem_calib_done(mcb3_calib_done),
+      .mem_error(mcb3_error),
+      .seg_digits(seg_digits)
+      );
+
+   // The 7-segment display controller
    seg_display seg_display_
      (
       .clk(clk),
-      .mcb3_calib_done(mcb3_calib_done),
-      .mcb3_error(mcb3_error),
+      .digits(seg_digits),
       .seven_seg(seven_seg),
       .seven_seg_en(seven_seg_en)
       );

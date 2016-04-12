@@ -1,29 +1,16 @@
-`define STATE_MEM_UNCALIB  12'h500
-`define STATE_MEM_ERROR    12'h501
-`define STATE_DEFAULT      12'h100
-
+/**
+ * This module takes a 100MHz clock and outputs signals controlling a
+ * 7-segment display with 3 hex digits.
+ *
+ * @author Robert Fotino, 2016
+ */
 module seg_display
   (
-   input wire       clk,
-   input wire       mcb3_calib_done, // memory interface calibration done
-   input wire       mcb3_error, // memory interface error
-   output reg [7:0] seven_seg,
-   output reg [2:0] seven_seg_en
+   input wire        clk,
+	input wire [11:0] digits,
+   output reg [7:0]  seven_seg,
+   output reg [2:0]  seven_seg_en
    );
-
-   // The 3 hex digits to display
-   reg [11:0]       state;
-
-   // Determine the current state based on input signals
-   always @ (*) begin
-      if (!mcb3_calib_done) begin
-         state = `STATE_MEM_UNCALIB;
-      end else if (mcb3_error) begin
-         state = `STATE_MEM_ERROR;
-      end else begin
-         state = `STATE_DEFAULT;
-      end
-   end
 
    // Divide the clock so that we get a seg_clk that runs at
    // about 380Hz (if clk is 100MHz)
@@ -47,13 +34,13 @@ module seg_display
       // Display the current digit
       if (cur_digit == 2) begin
          seven_seg_en <= 3'b011;
-         display_digit(state[11:8]);
+         display_digit(digits[11:8]);
       end else if (cur_digit == 1) begin
          seven_seg_en <= 3'b101;
-         display_digit(state[7:4]);
+         display_digit(digits[7:4]);
       end else begin
          seven_seg_en <= 3'b110;
-         display_digit(state[3:0]);
+         display_digit(digits[3:0]);
       end
    end
 
