@@ -9,6 +9,13 @@ module consolite
    output        hsync,
    output        vsync,
    output [7:0]  rgb,
+   // User inputs
+   input [5:0]   buttons,
+   input [7:0]   switches,
+   input [7:0]   gpio_p6,
+   input [7:0]   gpio_p7,
+   input [7:0]   gpio_p8,
+   input [7:0]   gpio_p9,
    // LPDDR RAM inputs and outputs
    inout [15:0]  mcb3_dram_dq,
    output [12:0] mcb3_dram_a,
@@ -56,6 +63,20 @@ module consolite
    wire          lpram_r_overflow;
    wire          lpram_r_error;
 
+   // Buffers the input for INPUT instructions
+   wire [45:0] buf_inputs;
+   input_handler input_handler_
+     (
+      .clk(clk),
+      .buttons(buttons),
+      .switches(switches),
+      .gpio_p6(gpio_p6),
+      .gpio_p7(gpio_p7),
+      .gpio_p8(gpio_p8),
+      .gpio_p9(gpio_p9),
+      .buf_inputs(buf_inputs)
+      );
+
    // Determines the digits for the 7-segment display,
    // based on status/error conditions
    wire [11:0]    seg_digits;
@@ -63,6 +84,7 @@ module consolite
      (
       .mem_calib_done(mcb3_calib_done),
       .mem_error(mcb3_error),
+      .buf_inputs(buf_inputs),
       .seg_digits(seg_digits)
       );
 

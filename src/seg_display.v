@@ -15,10 +15,9 @@ module seg_display
    // Divide the clock so that we get a seg_clk that runs at
    // about 380Hz (if clk is 100MHz)
    reg [17:0] counter = 0;
-   reg        seg_clk = 0;
+   wire       seg_clk = counter[17];
    always @ (posedge clk) begin
       counter <= counter + 1;
-      seg_clk <= &counter;
    end
 
    // Which digit are we currently displaying?
