@@ -4,6 +4,9 @@
  *
  * @author Robert Fotino, 2016
  */
+
+`include "definitions.vh"
+
 module seg_display
   (
    input wire        clk,

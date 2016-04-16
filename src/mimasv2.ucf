@@ -152,50 +152,58 @@ NET "gpio_p9[0]" LOC = L16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST; #P
 ###############################################################################
 #                           LPDDR MT46H32M16XXXX-5                            #
 ###############################################################################
-NET "mcb3_calib_done"  LOC = K13 | IOSTANDARD = LVCMOS33;
-NET "mcb3_error"       LOC = K12 | IOSTANDARD = LVCMOS33;
-NET "c3_sys_rst_n"     LOC = M13 | IOSTANDARD = LVCMOS33 | PULLDOWN;
-NET "mcb3_dram_a[0]"   LOC = J7  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[10]"  LOC = F4  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[11]"  LOC = D3  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_calib_done"  LOC = P15 | IOSTANDARD = LVCMOS33; // LED0
+NET "mcb3_error"       LOC = P16 | IOSTANDARD = LVCMOS33; // LED1
+NET "c3_sys_rst_n"     LOC = M13 | IOSTANDARD = LVCMOS33 | PULLDOWN; // Unconnected
+
 NET "mcb3_dram_a[12]"  LOC = G6  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[1]"   LOC = J6  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[2]"   LOC = H5  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[3]"   LOC = L7  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[4]"   LOC = F3  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[5]"   LOC = H4  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[6]"   LOC = H3  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[7]"   LOC = H6  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_a[8]"   LOC = D2  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[11]"  LOC = D3  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[10]"  LOC = F4  | IOSTANDARD = MOBILE_DDR;
 NET "mcb3_dram_a[9]"   LOC = D1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_ba[0]"  LOC = F2  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_ba[1]"  LOC = F1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_cas_n"  LOC = K5  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[8]"   LOC = D2  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[7]"   LOC = H6  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[6]"   LOC = H3  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[5]"   LOC = H4  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[4]"   LOC = F3  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[3]"   LOC = L7  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[2]"   LOC = H5  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[1]"   LOC = J6  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_a[0]"   LOC = J7  | IOSTANDARD = MOBILE_DDR;
+
+NET "mcb3_dram_udqs"   LOC = P2  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dqs"    LOC = L4  | IOSTANDARD = MOBILE_DDR;
+
 NET "mcb3_dram_ck"     LOC = G3  | IOSTANDARD = DIFF_MOBILE_DDR;
 NET "mcb3_dram_ck_n"   LOC = G1  | IOSTANDARD = DIFF_MOBILE_DDR;
 NET "mcb3_dram_cke"    LOC = H7  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dm"     LOC = K3  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[0]"  LOC = L2  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[10]" LOC = N2  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[11]" LOC = N1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[12]" LOC = T2  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[13]" LOC = T1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[14]" LOC = U2  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[15]" LOC = U1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[1]"  LOC = L1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[2]"  LOC = K2  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[3]"  LOC = K1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[4]"  LOC = H2  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[5]"  LOC = H1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[6]"  LOC = J3  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[7]"  LOC = J1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[8]"  LOC = M3  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dq[9]"  LOC = M1  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_dqs"    LOC = L4  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_ras_n"  LOC = L5  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_udm"    LOC = K4  | IOSTANDARD = MOBILE_DDR;
-NET "mcb3_dram_udqs"   LOC = P2  | IOSTANDARD = MOBILE_DDR;
+
 NET "mcb3_dram_we_n"   LOC = E3  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_cas_n"  LOC = K5  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_ras_n"  LOC = L5  | IOSTANDARD = MOBILE_DDR;
+
+NET "mcb3_dram_ba[1]"  LOC = F1  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_ba[0]"  LOC = F2  | IOSTANDARD = MOBILE_DDR;
+
+NET "mcb3_dram_udm"    LOC = K4  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dm"     LOC = K3  | IOSTANDARD = MOBILE_DDR;
+
+NET "mcb3_dram_dq[15]" LOC = U1  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[14]" LOC = U2  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[13]" LOC = T1  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[12]" LOC = T2  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[11]" LOC = N1  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[10]" LOC = N2  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[9]"  LOC = M1  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[8]"  LOC = M3  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[7]"  LOC = J1  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[6]"  LOC = J3  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[5]"  LOC = H1  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[4]"  LOC = H2  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[3]"  LOC = K1  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[2]"  LOC = K2  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[1]"  LOC = L1  | IOSTANDARD = MOBILE_DDR;
+NET "mcb3_dram_dq[0]"  LOC = L2  | IOSTANDARD = MOBILE_DDR;
+
 NET "mcb3_rzq"         LOC = N4  | IOSTANDARD = MOBILE_DDR;
 
 ############################################################################
@@ -219,7 +227,7 @@ CONFIG PROHIBIT = P1,L3;
 # achieve higher maximum frequencies for DDR2 and DDR3.Consult the Spartan-6
 #datasheet (DS162) table 2 and 24 for more information 
 ############################################################################
-CONFIG MCB_PERFORMANCE= STANDARD;
+CONFIG MCB_PERFORMANCE = STANDARD;
 
 ############################################################################
 # Timing Ignore constraints for paths crossing the clock domain

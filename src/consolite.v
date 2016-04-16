@@ -36,38 +36,27 @@ module consolite
    input         mcb3_error
    );
 
-   // Main memory command signals
-   reg           lpram_cmd_en = 0;
-   reg [2:0]     lpram_cmd_instr = 0;
-   reg [5:0]     lpram_cmd_bl = 0; // bl = burst length
-   reg [29:0]    lpram_cmd_addr = 0;
-   wire          lpram_cmd_empty;
-   wire          lpram_cmd_full;
-
-   // Main memory write signals
-   reg           lpram_w_en = 0;
-   reg [3:0]     lpram_w_mask = 0;
-   reg [31:0]    lpram_w_data = 0;
-   wire          lpram_w_full;
-   wire          lpram_w_empty;
-   wire [6:0]    lpram_w_count;
-   wire          lpram_w_underrun;
-   wire          lpram_w_error;
-
-   // Main memory read signals
-   reg           lpram_r_en = 0;
-   wire [31:0]   lpram_r_data = 0;
-   wire          lpram_r_full;
-   wire          lpram_r_empty;
-   wire [6:0]    lpram_r_count;
-   wire          lpram_r_overflow;
-   wire          lpram_r_error;
+   // Main memory port 2 (read) for VGA buffer
+   wire        c3_p2_cmd_clk;
+   wire        c3_p2_cmd_en;
+   wire [2:0]  c3_p2_cmd_instr;
+   wire [5:0]  c3_p2_cmd_bl; // bl = burst length
+   wire [29:0] c3_p2_cmd_byte_addr;
+   wire        c3_p2_cmd_empty;
+   wire        c3_p2_cmd_full;
+   wire        c3_p2_rd_clk;
+   wire        c3_p2_rd_en;
+   wire [31:0] c3_p2_rd_data;
+   wire        c3_p2_rd_full;
+   wire        c3_p2_rd_empty;
+   wire [6:0]  c3_p2_rd_count;
+   wire        c3_p2_rd_overflow;
+   wire        c3_p2_rd_error;
 
    // Buffers the input for INPUT instructions
    wire [45:0] buf_inputs;
    input_handler input_handler_
      (
-      .clk(clk),
       .buttons(buttons),
       .switches(switches),
       .gpio_p6(gpio_p6),
@@ -84,6 +73,7 @@ module consolite
      (
       .mem_calib_done(mcb3_calib_done),
       .mem_error(mcb3_error),
+      .vga_buf_empty(vga_buf_empty),
       .buf_inputs(buf_inputs),
       .seg_digits(seg_digits)
       );
@@ -103,41 +93,42 @@ module consolite
       .clk(clk),
       .hsync(hsync),
       .vsync(vsync),
-      .rgb(rgb)
+      .rgb(rgb),
+      .buf_empty(vga_buf_empty),
+      .mem_cmd_en(c3_p2_cmd_en),
+      .mem_cmd_instr(c3_p2_cmd_instr),
+      .mem_cmd_bl(c3_p2_cmd_bl),
+      .mem_cmd_byte_addr(c3_p2_cmd_byte_addr),
+      .mem_cmd_empty(c3_p2_cmd_empty),
+      .mem_cmd_full(c3_p2_cmd_full),
+      .mem_rd_en(c3_p2_rd_en),
+      .mem_rd_data(c3_p2_rd_data),
+      .mem_rd_full(c3_p2_rd_full),
+      .mem_rd_empty(c3_p2_rd_empty),
+      .mem_rd_count(c3_p2_rd_count),
+      .mem_rd_overflow(c3_p2_rd_overflow),
+      .mem_rd_error(c3_p2_rd_error)
       );
 
    // Create an instance of the LPDDR memory interface
    s6_lpddr_ram main_ram_
      (
-      // Command signals
-      .c3_p0_cmd_clk(clk),
-      .c3_p0_cmd_en(lpram_cmd_en),
-      .c3_p0_cmd_instr(lpram_cmd_instr),
-      .c3_p0_cmd_bl(lpram_cmd_bl),
-      .c3_p0_cmd_byte_addr(lpram_cmd_addr),
-      .c3_p0_cmd_empty(lpram_cmd_empty),
-      .c3_p0_cmd_full(lpram_cmd_full),
-
-      // Write signals
-      .c3_p0_wr_clk(clk),
-      .c3_p0_wr_en(lpram_w_en),
-      .c3_p0_wr_mask(lpram_w_mask),
-      .c3_p0_wr_data(lpram_w_data),
-      .c3_p0_wr_full(lpram_w_full),
-      .c3_p0_wr_empty(lpram_w_empty),
-      .c3_p0_wr_count(lpram_w_count),
-      .c3_p0_wr_underrun(lpram_w_underrun),
-      .c3_p0_wr_error(lpram_w_error),
-
-      // Read signals
-      .c3_p0_rd_clk(clk),
-      .c3_p0_rd_en(lpram_r_en),
-      .c3_p0_rd_data(lpram_r_data),
-      .c3_p0_rd_full(lpram_r_full),
-      .c3_p0_rd_empty(lpram_r_empty),
-      .c3_p0_rd_count(lpram_r_count),
-      .c3_p0_rd_overflow(lpram_r_overflow),
-      .c3_p0_rd_error(lpram_r_error),
+      // Main memory port 2 (VGA buffer, read only)
+      .c3_p2_cmd_clk(clk),
+      .c3_p2_cmd_en(c3_p2_cmd_en),
+      .c3_p2_cmd_instr(c3_p2_cmd_instr),
+      .c3_p2_cmd_bl(c3_p2_cmd_bl),
+      .c3_p2_cmd_byte_addr(c3_p2_cmd_byte_addr),
+      .c3_p2_cmd_empty(c3_p2_cmd_empty),
+      .c3_p2_cmd_full(c3_p2_cmd_full),
+      .c3_p2_rd_clk(clk),
+      .c3_p2_rd_en(c3_p2_rd_en),
+      .c3_p2_rd_data(c3_p2_rd_data),
+      .c3_p2_rd_full(c3_p2_rd_full),
+      .c3_p2_rd_empty(c3_p2_rd_empty),
+      .c3_p2_rd_count(c3_p2_rd_count),
+      .c3_p2_rd_overflow(c3_p2_rd_overflow),
+      .c3_p2_rd_error(c3_p2_rd_error),
 
       // Memory interface signals
       .mcb3_dram_dq(mcb3_dram_dq),
