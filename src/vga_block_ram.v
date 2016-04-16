@@ -21,7 +21,7 @@ module vga_block_ram
    // Data out for the underlying block RAM. Output
    // is 32 bits, but we want to have byte-level indexing
    wire [31:0]  DO;
-   assign rd_data = DO[rd_addr[1:0]+:8];
+   assign rd_data = DO[{rd_addr[1:0], 3'b0}+:8];
 
    // Instantiate a 9Kib simple dual-port block RAM
    BRAM_SDP_MACRO

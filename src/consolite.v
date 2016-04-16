@@ -90,7 +90,7 @@ module consolite
    // The VGA display controller
    vga_display vga_display_
      (
-      .clk(clk),
+      .clk(clk & mcb3_calib_done),
       .hsync(hsync),
       .vsync(vsync),
       .rgb(rgb),
