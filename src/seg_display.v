@@ -10,7 +10,7 @@
 module seg_display
   (
    input wire        clk,
-	input wire [11:0] digits,
+   input wire [11:0] digits,
    output reg [7:0]  seven_seg,
    output reg [2:0]  seven_seg_en
    );

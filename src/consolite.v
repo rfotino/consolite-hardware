@@ -1,3 +1,10 @@
+/**
+ * The top level module for Consolite. Instantiates
+ * an LPDDR RAM, VGA controller, 7-segment display,
+ * processor, etc and hooks them together.
+ *
+ * @author Robert Fotino, 2016
+ */
 module consolite
   (
    // 100MHz system clock
@@ -135,6 +142,11 @@ module consolite
      (
       .clk(clk & mcb3_calib_done),
       .clear_screen_done(clear_screen_done),
+      .pixel_wr_done(pixel_wr_done),
+      .pixel_en(clear_screen_done),
+      .pixel_rgb(8'b111111),
+      .pixel_x(8'd127),
+      .pixel_y(8'd95),
       .mem_cmd_en(c3_p4_cmd_en),
       .mem_cmd_instr(c3_p4_cmd_instr),
       .mem_cmd_bl(c3_p4_cmd_bl),

@@ -76,11 +76,12 @@ module vga_buffer
    // Similarly the burst length is always 64
    assign mem_cmd_bl = 6'b111111;
    // We always want to read from the end of the last valid byte
-   wire [15:0] first_invalid_byte = first_valid_byte + valid_len;
-   assign mem_cmd_byte_addr = {
-      `GRAPHICS_MEM_PREFIX,
-      first_invalid_byte[15:0]
+   wire [15:0] valid_plus_len = first_valid_byte + valid_len;
+   wire [15:0] first_uncached_byte = {
+      valid_plus_len[15:8] < 191 ? valid_plus_len[15:8] : 8'b0,
+      valid_plus_len[7:0]
    };
+   assign mem_cmd_byte_addr = { `GRAPHICS_MEM_PREFIX, first_uncached_byte };
    // We use a state machine to refill the buffer. Need to keep track
    // of how many words have been read so we know when to stop reading
    reg [1:0]   mem_state = `MEM_STATE_IDLE;
@@ -93,7 +94,7 @@ module vga_buffer
       .clk(clk),
       // Write signals
       .wr_en(write_en),
-      .wr_addr(first_invalid_byte[7:2]),
+      .wr_addr(first_uncached_byte[7:2]),
       .wr_data(mem_rd_data),
       // Read signals
       .rd_addr(first_valid_byte[7:0]),

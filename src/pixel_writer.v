@@ -11,6 +11,11 @@ module pixel_writer
   (
    input             clk,
    output reg        clear_screen_done,
+   output reg        pixel_wr_done,
+   input             pixel_en,
+   input [7:0]       pixel_rgb,
+   input [7:0]       pixel_x,
+   input [7:0]       pixel_y,
    output reg        mem_cmd_en,
    output wire [2:0] mem_cmd_instr,
    output reg [5:0]  mem_cmd_bl,
@@ -29,6 +34,7 @@ module pixel_writer
 
    initial begin
       clear_screen_done = 0;
+      pixel_wr_done = 1;
       mem_cmd_en = 0;
       mem_cmd_bl = 6'b0;
       mem_cmd_byte_addr = { `GRAPHICS_MEM_PREFIX, 16'h0000 };
@@ -47,7 +53,7 @@ module pixel_writer
         0: begin
            mem_wr_en <= 1;
            mem_wr_data <= 32'h00000000;
-           mem_wr_mask <= 4'b1111;
+           mem_wr_mask <= 4'b0000;
            word_index <= word_index + 1;
            if (word_index == 64) begin
               word_index <= 0;
@@ -76,6 +82,28 @@ module pixel_writer
         end
         2: begin
            // Done clearing screen
+           pixel_wr_done <= 0;
+           if (pixel_en) begin
+              mem_wr_en <= 1;
+              mem_wr_data <= {4{pixel_rgb}};
+              mem_wr_mask <= 0 == pixel_x[1:0] ? 4'b0111 :
+                             1 == pixel_x[1:0] ? 4'b1011 :
+                             2 == pixel_x[1:0] ? 4'b1101 : 4'b1110;
+              mem_cmd_byte_addr <= {
+                 `GRAPHICS_MEM_PREFIX,
+                 pixel_y, pixel_x
+              };
+              state <= 3;
+           end
+        end
+        3: begin
+           mem_wr_en <= 0;
+           mem_cmd_bl <= 6'b000000;
+           mem_cmd_en <= ~mem_cmd_en;
+           if (mem_cmd_en) begin
+              pixel_wr_done <= 1;
+              state <= 0;
+           end
         end
       endcase
    end
