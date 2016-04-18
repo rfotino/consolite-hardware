@@ -7,6 +7,11 @@
 
 `include "definitions.vh"
 
+`define STATE_CLEAR_SCREEN_WRITE 0
+`define STATE_CLEAR_SCREEN_CMD   1
+`define STATE_PIXEL_WRITE        2
+`define STATE_PIXEL_CMD          3
+
 module pixel_writer
   (
    input             clk,
@@ -45,12 +50,12 @@ module pixel_writer
    assign mem_cmd_instr = 3'b000; // write
 
    // The pixel writer will have a state machine to talk to RAM
-   reg [1:0] state = 0;
+   reg [1:0] state = `STATE_CLEAR_SCREEN_WRITE;
    reg [6:0] word_index = 0;
    reg [7:0] line_index = 0;
    always @ (posedge clk) begin
       case (state)
-        0: begin
+        `STATE_CLEAR_SCREEN_WRITE: begin
            mem_wr_en <= 1;
            mem_wr_data <= 32'h00000000;
            mem_wr_mask <= 4'b0000;
@@ -65,22 +70,22 @@ module pixel_writer
                  line_index,
                  8'b00000000
               };
-              state <= 1;
+              state <= `STATE_CLEAR_SCREEN_CMD;
            end
         end
-        1: begin
+        `STATE_CLEAR_SCREEN_CMD: begin
            mem_cmd_en <= 0;
            if (mem_wr_empty) begin
               if (line_index == 191) begin
                  clear_screen_done <= 1;
-                 state <= 2;
+                 state <= `STATE_PIXEL_WRITE;
               end else begin
                  line_index <= line_index + 1;
-                 state <= 0;
+                 state <= `STATE_CLEAR_SCREEN_WRITE;
               end
            end
         end
-        2: begin
+        `STATE_PIXEL_WRITE: begin
            // Done clearing screen
            pixel_wr_done <= 0;
            if (pixel_en) begin
@@ -93,16 +98,16 @@ module pixel_writer
                  `GRAPHICS_MEM_PREFIX,
                  pixel_y, pixel_x
               };
-              state <= 3;
+              state <= `STATE_PIXEL_CMD;
            end
         end
-        3: begin
+        `STATE_PIXEL_CMD: begin
            mem_wr_en <= 0;
            mem_cmd_bl <= 6'b000000;
            mem_cmd_en <= ~mem_cmd_en;
            if (mem_cmd_en) begin
               pixel_wr_done <= 1;
-              state <= 0;
+              state <= `STATE_PIXEL_WRITE;
            end
         end
       endcase
