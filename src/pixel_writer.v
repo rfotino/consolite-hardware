@@ -1,0 +1,83 @@
+/**
+ * This module first zeros out video memory, then accepts
+ * requests to write to individual pixels.
+ *
+ * @author Robert Fotino, 2016
+ */
+
+`include "definitions.vh"
+
+module pixel_writer
+  (
+   input             clk,
+   output reg        clear_screen_done,
+   output reg        mem_cmd_en,
+   output wire [2:0] mem_cmd_instr,
+   output reg [5:0]  mem_cmd_bl,
+   output reg [29:0] mem_cmd_byte_addr,
+   input             mem_cmd_empty,
+   input             mem_cmd_full,
+   output reg        mem_wr_en,
+   output reg [3:0]  mem_wr_mask,
+   output reg [31:0] mem_wr_data,
+   input             mem_wr_full,
+   input             mem_wr_empty,
+   input [6:0]       mem_wr_count,
+   input             mem_wr_underrun,
+   input             mem_wr_error
+   );
+
+   initial begin
+      clear_screen_done = 0;
+      mem_cmd_en = 0;
+      mem_cmd_bl = 6'b0;
+      mem_cmd_byte_addr = { `GRAPHICS_MEM_PREFIX, 16'h0000 };
+      mem_wr_en = 0;
+      mem_wr_mask = 4'b1111;
+      mem_wr_data = 32'h00000000;
+   end
+   assign mem_cmd_instr = 3'b000; // write
+
+   // The pixel writer will have a state machine to talk to RAM
+   reg [1:0] state = 0;
+   reg [6:0] word_index = 0;
+   reg [7:0] line_index = 0;
+   always @ (posedge clk) begin
+      case (state)
+        0: begin
+           mem_wr_en <= 1;
+           mem_wr_data <= 32'h00000000;
+           mem_wr_mask <= 4'b1111;
+           word_index <= word_index + 1;
+           if (word_index == 64) begin
+              word_index <= 0;
+              mem_wr_en <= 0;
+              mem_cmd_en <= 1;
+              mem_cmd_bl <= 6'b111111;
+              mem_cmd_byte_addr <= {
+                 `GRAPHICS_MEM_PREFIX,
+                 line_index,
+                 8'b00000000
+              };
+              state <= 1;
+           end
+        end
+        1: begin
+           mem_cmd_en <= 0;
+           if (mem_wr_empty) begin
+              if (line_index == 191) begin
+                 clear_screen_done <= 1;
+                 state <= 2;
+              end else begin
+                 line_index <= line_index + 1;
+                 state <= 0;
+              end
+           end
+        end
+        2: begin
+           // Done clearing screen
+        end
+      endcase
+   end
+
+endmodule

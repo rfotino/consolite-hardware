@@ -128,9 +128,8 @@ module vga_buffer
         // Request a read transaction from main memory, then switch
         // to the wait state and wait for it to return data
         `MEM_STATE_CMD: begin
-           mem_cmd_en <= 1;
-           if (!mem_cmd_empty) begin
-              mem_cmd_en <= 0;
+           mem_cmd_en <= ~mem_cmd_en;
+           if (mem_cmd_en) begin
               mem_state <= `MEM_STATE_WAIT;
            end
         end

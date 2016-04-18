@@ -36,15 +36,18 @@ module consolite
    input         mcb3_error
    );
 
+   // Some functions can't be started until we have booted
+   wire clear_screen_done;
+   wire sdcard_read_done = 1;
+   wire boot_done = mcb3_calib_done & clear_screen_done & sdcard_read_done;
+
    // Main memory port 2 (read) for VGA buffer
-   wire        c3_p2_cmd_clk;
    wire        c3_p2_cmd_en;
    wire [2:0]  c3_p2_cmd_instr;
    wire [5:0]  c3_p2_cmd_bl; // bl = burst length
    wire [29:0] c3_p2_cmd_byte_addr;
    wire        c3_p2_cmd_empty;
    wire        c3_p2_cmd_full;
-   wire        c3_p2_rd_clk;
    wire        c3_p2_rd_en;
    wire [31:0] c3_p2_rd_data;
    wire        c3_p2_rd_full;
@@ -52,6 +55,22 @@ module consolite
    wire [6:0]  c3_p2_rd_count;
    wire        c3_p2_rd_overflow;
    wire        c3_p2_rd_error;
+
+   // Main memory port 4 (write) for pixel writer
+   wire        c3_p4_cmd_en;
+   wire [2:0]  c3_p4_cmd_instr;
+   wire [5:0]  c3_p4_cmd_bl; // bl = burst length
+   wire [29:0] c3_p4_cmd_byte_addr;
+   wire        c3_p4_cmd_empty;
+   wire        c3_p4_cmd_full;
+   wire        c3_p4_wr_en;
+   wire [3:0]  c3_p4_wr_mask;
+   wire [31:0] c3_p4_wr_data;
+   wire        c3_p4_wr_full;
+   wire        c3_p4_wr_empty;
+   wire [6:0]  c3_p4_wr_count;
+   wire        c3_p4_wr_underrun;
+   wire        c3_p4_wr_error;
 
    // Buffers the input for INPUT instructions
    wire [45:0] buf_inputs;
@@ -73,8 +92,9 @@ module consolite
      (
       .mem_calib_done(mcb3_calib_done),
       .mem_error(mcb3_error),
+      .clear_screen_done(clear_screen_done),
+      .sdcard_read_done(sdcard_read_done),
       .vga_buf_empty(vga_buf_empty),
-      .buf_inputs(buf_inputs),
       .seg_digits(seg_digits)
       );
 
@@ -90,7 +110,7 @@ module consolite
    // The VGA display controller
    vga_display vga_display_
      (
-      .clk(clk & mcb3_calib_done),
+      .clk(clk & boot_done),
       .hsync(hsync),
       .vsync(vsync),
       .rgb(rgb),
@@ -108,6 +128,27 @@ module consolite
       .mem_rd_count(c3_p2_rd_count),
       .mem_rd_overflow(c3_p2_rd_overflow),
       .mem_rd_error(c3_p2_rd_error)
+      );
+
+   // A writer to video memory
+   pixel_writer pixel_writer_
+     (
+      .clk(clk & mcb3_calib_done),
+      .clear_screen_done(clear_screen_done),
+      .mem_cmd_en(c3_p4_cmd_en),
+      .mem_cmd_instr(c3_p4_cmd_instr),
+      .mem_cmd_bl(c3_p4_cmd_bl),
+      .mem_cmd_byte_addr(c3_p4_cmd_byte_addr),
+      .mem_cmd_empty(c3_p4_cmd_empty),
+      .mem_cmd_full(c3_p4_cmd_full),
+      .mem_wr_en(c3_p4_wr_en),
+      .mem_wr_mask(c3_p4_wr_mask),
+      .mem_wr_data(c3_p4_wr_data),
+      .mem_wr_full(c3_p4_wr_data),
+      .mem_wr_empty(c3_p4_wr_empty),
+      .mem_wr_count(c3_p4_wr_count),
+      .mem_wr_underrun(c3_p4_wr_underrun),
+      .mem_wr_error(c3_p4_wr_error)
       );
 
    // Create an instance of the LPDDR memory interface
@@ -129,6 +170,24 @@ module consolite
       .c3_p2_rd_count(c3_p2_rd_count),
       .c3_p2_rd_overflow(c3_p2_rd_overflow),
       .c3_p2_rd_error(c3_p2_rd_error),
+
+      // Main memory port 4 (pixel writer, write only)
+      .c3_p4_cmd_clk(clk),
+      .c3_p4_cmd_en(c3_p4_cmd_en),
+      .c3_p4_cmd_instr(c3_p4_cmd_instr),
+      .c3_p4_cmd_bl(c3_p4_cmd_bl),
+      .c3_p4_cmd_byte_addr(c3_p4_cmd_byte_addr),
+      .c3_p4_cmd_empty(c3_p4_cmd_empty),
+      .c3_p4_cmd_full(c3_p4_cmd_full),
+      .c3_p4_wr_clk(clk),
+      .c3_p4_wr_en(c3_p4_wr_en),
+      .c3_p4_wr_mask(c3_p4_wr_mask),
+      .c3_p4_wr_data(c3_p4_wr_data),
+      .c3_p4_wr_full(c3_p4_wr_full),
+      .c3_p4_wr_empty(c3_p4_wr_empty),
+      .c3_p4_wr_count(c3_p4_wr_count),
+      .c3_p4_wr_underrun(c3_p4_wr_underrun),
+      .c3_p4_wr_error(c3_p4_wr_error),
 
       // Memory interface signals
       .mcb3_dram_dq(mcb3_dram_dq),
