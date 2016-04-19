@@ -10,7 +10,6 @@
 
 module seg_status
   (
-   input wire        clk,
    input wire        mem_calib_done, // LPDDR RAM calibration complete
    input wire        mem_error, // Bit error with LPDDR RAM
    input wire        clear_screen_done, // Done zeroing video memory

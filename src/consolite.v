@@ -117,7 +117,7 @@ module consolite
    // The VGA display controller
    vga_display vga_display_
      (
-      .clk(clk & boot_done),
+      .clk(clk & mcb3_calib_done),
       .hsync(hsync),
       .vsync(vsync),
       .rgb(rgb),
@@ -144,7 +144,7 @@ module consolite
       .clear_screen_done(clear_screen_done),
       .pixel_wr_done(pixel_wr_done),
       .pixel_en(clear_screen_done),
-      .pixel_rgb(8'b111111),
+      .pixel_rgb(8'b11111111),
       .pixel_x(8'd127),
       .pixel_y(8'd95),
       .mem_cmd_en(c3_p4_cmd_en),
@@ -156,7 +156,7 @@ module consolite
       .mem_wr_en(c3_p4_wr_en),
       .mem_wr_mask(c3_p4_wr_mask),
       .mem_wr_data(c3_p4_wr_data),
-      .mem_wr_full(c3_p4_wr_data),
+      .mem_wr_full(c3_p4_wr_full),
       .mem_wr_empty(c3_p4_wr_empty),
       .mem_wr_count(c3_p4_wr_count),
       .mem_wr_underrun(c3_p4_wr_underrun),

@@ -59,9 +59,6 @@ module vga_buffer
       mem_rd_en = 0;
    end
 
-   // Convert the 2D (x, y) coordinate to a flat 1D coordinate
-   // Width is 2^8 so we can just concat
-   wire [15:0] flat_coord = { y_coord, x_coord };
    // The address of the first valid byte. Bytes are indexed by
    // their last 8 bits in the buffer
    reg [15:0]  first_valid_byte = 0;
@@ -97,7 +94,7 @@ module vga_buffer
       .wr_addr(first_uncached_byte[7:2]),
       .wr_data(mem_rd_data),
       // Read signals
-      .rd_addr(first_valid_byte[7:0]),
+      .rd_addr(x_coord),
       .rd_data(rgb)
       );
 

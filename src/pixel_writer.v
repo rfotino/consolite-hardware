@@ -41,10 +41,10 @@ module pixel_writer
       clear_screen_done = 0;
       pixel_wr_done = 1;
       mem_cmd_en = 0;
-      mem_cmd_bl = 6'b0;
+      mem_cmd_bl = 6'b000000;
       mem_cmd_byte_addr = { `GRAPHICS_MEM_PREFIX, 16'h0000 };
       mem_wr_en = 0;
-      mem_wr_mask = 4'b1111;
+      mem_wr_mask = 4'b0000;
       mem_wr_data = 32'h00000000;
    end
    assign mem_cmd_instr = 3'b000; // write
@@ -88,7 +88,7 @@ module pixel_writer
         `STATE_PIXEL_WRITE: begin
            // Done clearing screen
            pixel_wr_done <= 0;
-           if (pixel_en) begin
+           if (pixel_en && !mem_cmd_full && !mem_wr_full) begin
               mem_wr_en <= 1;
               mem_wr_data <= {4{pixel_rgb}};
               mem_wr_mask <= 0 == pixel_x[1:0] ? 4'b0111 :
@@ -96,7 +96,7 @@ module pixel_writer
                              2 == pixel_x[1:0] ? 4'b1101 : 4'b1110;
               mem_cmd_byte_addr <= {
                  `GRAPHICS_MEM_PREFIX,
-                 pixel_y, pixel_x
+                 pixel_y, pixel_x[7:2], 2'b00
               };
               state <= `STATE_PIXEL_CMD;
            end
