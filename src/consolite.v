@@ -137,16 +137,33 @@ module consolite
       .mem_rd_error(c3_p2_rd_error)
       );
 
+   // A test for the pixel writer
+   wire pixel_wr_done;
+   wire pixel_en;
+   wire [7:0] pixel_rgb;
+   wire [7:0] pixel_x;
+   wire [7:0] pixel_y;
+   pixel_tester pixel_tester_
+     (
+      .clk(clk),
+      .clear_screen_done(clear_screen_done),
+      .pixel_wr_done(pixel_wr_done),
+      .pixel_en(pixel_en),
+      .pixel_rgb(pixel_rgb),
+      .pixel_x(pixel_x),
+      .pixel_y(pixel_y)
+      );
+
    // A writer to video memory
    pixel_writer pixel_writer_
      (
       .clk(clk & mcb3_calib_done),
       .clear_screen_done(clear_screen_done),
       .pixel_wr_done(pixel_wr_done),
-      .pixel_en(clear_screen_done),
-      .pixel_rgb(8'b11111111),
-      .pixel_x(8'd127),
-      .pixel_y(8'd95),
+      .pixel_en(pixel_en),
+      .pixel_rgb(pixel_rgb),
+      .pixel_x(pixel_x),
+      .pixel_y(pixel_y),
       .mem_cmd_en(c3_p4_cmd_en),
       .mem_cmd_instr(c3_p4_cmd_instr),
       .mem_cmd_bl(c3_p4_cmd_bl),

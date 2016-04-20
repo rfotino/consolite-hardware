@@ -16,7 +16,7 @@ module pixel_writer
   (
    input             clk,
    output reg        clear_screen_done,
-   output reg        pixel_wr_done,
+   output            pixel_wr_done,
    input             pixel_en,
    input [7:0]       pixel_rgb,
    input [7:0]       pixel_x,
@@ -39,7 +39,6 @@ module pixel_writer
 
    initial begin
       clear_screen_done = 0;
-      pixel_wr_done = 1;
       mem_cmd_en = 0;
       mem_cmd_bl = 6'b000000;
       mem_cmd_byte_addr = { `GRAPHICS_MEM_PREFIX, 16'h0000 };
@@ -51,6 +50,7 @@ module pixel_writer
 
    // The pixel writer will have a state machine to talk to RAM
    reg [1:0] state = `STATE_CLEAR_SCREEN_WRITE;
+   assign pixel_wr_done = `STATE_PIXEL_WRITE == state && !mem_cmd_full && !mem_wr_full;
    reg [6:0] word_index = 0;
    reg [7:0] line_index = 0;
    always @ (posedge clk) begin
@@ -86,14 +86,12 @@ module pixel_writer
            end
         end
         `STATE_PIXEL_WRITE: begin
-           // Done clearing screen
-           pixel_wr_done <= 0;
-           if (pixel_en && !mem_cmd_full && !mem_wr_full) begin
+           if (pixel_en && pixel_wr_done) begin
               mem_wr_en <= 1;
               mem_wr_data <= {4{pixel_rgb}};
-              mem_wr_mask <= 0 == pixel_x[1:0] ? 4'b0111 :
-                             1 == pixel_x[1:0] ? 4'b1011 :
-                             2 == pixel_x[1:0] ? 4'b1101 : 4'b1110;
+              mem_wr_mask <= 0 == pixel_x[1:0] ? 4'b1110 :
+                             1 == pixel_x[1:0] ? 4'b1101 :
+                             2 == pixel_x[1:0] ? 4'b1011 : 4'b0111;
               mem_cmd_byte_addr <= {
                  `GRAPHICS_MEM_PREFIX,
                  pixel_y, pixel_x[7:2], 2'b00
@@ -106,10 +104,84 @@ module pixel_writer
            mem_cmd_bl <= 6'b000000;
            mem_cmd_en <= ~mem_cmd_en;
            if (mem_cmd_en) begin
-              pixel_wr_done <= 1;
               state <= `STATE_PIXEL_WRITE;
            end
         end
+      endcase
+   end
+
+endmodule
+
+/**
+ * Draws a space invader graphic to the screen as a test for
+ * the pixel writer at (50, 50). The graphic is 11 pixels wide
+ * and 8 pixels high, with white as the foreground and red as
+ * the background. In tests it runs in ~350 cycles, or
+ * 3.5 microseconds.
+ *
+ * @author Robert Fotino, 2016
+ */
+module pixel_tester
+  (
+   input clk,
+   input clear_screen_done,
+   input pixel_wr_done,
+   output reg pixel_en,
+   output [7:0] pixel_rgb,
+   output [7:0] pixel_x,
+   output [7:0] pixel_y
+   );
+
+   `define WIDTH  11
+   `define HEIGHT 8
+   wire [`WIDTH-1:0] graphic [`HEIGHT-1:0] = {
+      11'b00011011000,
+      11'b10100000101,
+      11'b10111111101,
+      11'b11111111111,
+      11'b01101110110,
+      11'b00111111100,
+      11'b00010001000,
+      11'b00100000100
+   };
+
+   reg [7:0] x = 0;
+   reg [7:0] y = 0;
+   assign pixel_rgb = graphic[y][x] ? 8'hff : 8'he0;
+   assign pixel_x = 50 + x;
+   assign pixel_y = 50 + y;
+   reg [1:0] status = 0;
+
+   initial begin
+      pixel_en = 0;
+   end
+
+   always @ (posedge clk) begin
+      case (status)
+         0: begin
+            if (pixel_wr_done) begin
+               pixel_en <= 1;
+               status <= 1;
+            end
+         end
+         1: begin
+            if (pixel_wr_done) begin
+               if (x == `WIDTH - 1) begin
+                  x <= 0;
+                  if (y == `HEIGHT - 1) begin
+                     pixel_en <= 0;
+                     status <= 2;
+                  end else begin
+                     y <= y + 1;
+                  end
+               end else begin
+                  x <= x + 1;
+               end
+            end
+         end
+         2: begin
+            // Do nothing
+         end
       endcase
    end
 
