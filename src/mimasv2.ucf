@@ -59,12 +59,10 @@ NET "buttons[0]" LOC = K18 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST | P
 ###############################################################################
 #                           Micro SD Card                                     #
 ###############################################################################
-#NET "DAT0" LOC = K14 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST; #MISO
-#NET "DAT1" LOC = G18 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-#NET "DAT2" LOC = J13 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-#NET "DAT3" LOC = L13 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST; #CS
-#NET "CMD"  LOC = G16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST; #MOSI
-#NET "CLK"  LOC = L12 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST; #CLK
+NET "sdcard_cs"   LOC = L13 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "sdcard_sclk" LOC = L12 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "sdcard_mosi" LOC = G16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "sdcard_miso" LOC = K14 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
 
 ###############################################################################
 #                           Seven Segment Display                             #
