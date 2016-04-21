@@ -92,6 +92,16 @@ module consolite
       .buf_inputs(buf_inputs)
       );
 
+   // A reset-able millisecond timer for TIME and
+   // TIMERST instructions
+   wire [15:0] ms_time;
+   ms_timer ms_timer_
+     (
+      .clk(clk),
+      .reset(buf_inputs[0]),
+      .ms_time(ms_time)
+      );
+
    // Determines the digits for the 7-segment display,
    // based on status/error conditions
    wire [11:0]    seg_digits;
@@ -109,7 +119,7 @@ module consolite
    seg_display seg_display_
      (
       .clk(clk),
-      .digits(seg_digits),
+      .digits(ms_time[15:4]),
       .seven_seg(seven_seg),
       .seven_seg_en(seven_seg_en)
       );
