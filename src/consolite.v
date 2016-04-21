@@ -5,6 +5,9 @@
  *
  * @author Robert Fotino, 2016
  */
+
+`include "definitions.vh"
+
 module consolite
   (
    // 100MHz system clock
@@ -94,12 +97,21 @@ module consolite
 
    // A reset-able millisecond timer for TIME and
    // TIMERST instructions
-   wire [15:0] ms_time;
+   wire [`WORD_BITS-1:0] ms_time;
    ms_timer ms_timer_
      (
       .clk(clk),
       .reset(buf_inputs[0]),
       .ms_time(ms_time)
+      );
+
+   wire [`WORD_BITS-1:0] rnd;
+   galois_lfsr rng
+     (
+      .clk(clk),
+      .calib_done(mcb3_calib_done),
+      .buf_inputs(buf_inputs),
+      .rnd(rnd)
       );
 
    // Determines the digits for the 7-segment display,
@@ -119,7 +131,7 @@ module consolite
    seg_display seg_display_
      (
       .clk(clk),
-      .digits(ms_time[15:4]),
+      .digits(rnd[11:0]),
       .seven_seg(seven_seg),
       .seven_seg_en(seven_seg_en)
       );

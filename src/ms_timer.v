@@ -11,20 +11,20 @@
 
 module ms_timer
   (
-   input             clk,
-   input             reset,
-   output reg [15:0] ms_time
+   input                       clk,
+   input                       reset,
+   output reg [`WORD_BITS-1:0] ms_time
    );
 
    initial begin
-      ms_time = 16'h0000;
+      ms_time = 0;
    end
 
    reg [16:0]        ms_counter = 1;
    always @ (posedge clk) begin
       if (reset) begin
          ms_counter <= 1;
-         ms_time <= 16'h0000;
+         ms_time <= 0;
       end else begin
          if (ms_counter == 100000) begin
             ms_counter <= 1;

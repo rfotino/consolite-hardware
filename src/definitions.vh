@@ -25,6 +25,9 @@
 `define SCREEN_WIDTH        256
 `define SCREEN_HEIGHT       192
 
+// Bits in a Consolite word
+`define WORD_BITS           16
+
 // Memory accesses are 16 bits, but the LPDDR RAM
 // has 30-bit address sizes. To access different
 // segments of memory we add a 14-bit prefix
