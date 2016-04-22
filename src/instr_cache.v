@@ -9,7 +9,8 @@
 
 module instr_cache
   (
-   input clk,
+   input             clk,
+   input             boot_done,
    output reg        mem_cmd_en,
    output wire [2:0] mem_cmd_instr,
    output reg [5:0]  mem_cmd_bl,

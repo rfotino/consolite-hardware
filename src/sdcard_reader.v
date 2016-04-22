@@ -13,6 +13,7 @@
 module sdcard_reader
   (
    input             clk,
+   input             calib_done,
    output reg        sdcard_read_done,
    // Signals for communicating with SD card
    output reg        sdcard_cs,

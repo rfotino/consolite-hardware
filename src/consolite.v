@@ -201,7 +201,8 @@ module consolite
    // The VGA display controller
    vga_display vga_display_
      (
-      .clk(clk & mcb3_calib_done),
+      .clk(clk),
+      .calib_done(mcb3_calib_done),
       .hsync(hsync),
       .vsync(vsync),
       .rgb(rgb),
@@ -241,7 +242,8 @@ module consolite
    // A writer to video memory
    pixel_writer pixel_writer_
      (
-      .clk(clk & mcb3_calib_done),
+      .clk(clk),
+      .calib_done(mcb3_calib_done),
       .clear_screen_done(clear_screen_done),
       .pixel_wr_done(pixel_wr_done),
       .pixel_en(pixel_en),
@@ -268,7 +270,8 @@ module consolite
    // card and writes it to RAM for the processor to execute
    sdcard_reader sdcard_reader_
      (
-      .clk(clk & mcb3_calib_done),
+      .clk(clk),
+      .calib_done(mcb3_calib_done),
       .sdcard_read_done(sdcard_read_done),
       .sdcard_cs(sdcard_cs),
       .sdcard_sclk(sdcard_sclk),
@@ -294,7 +297,8 @@ module consolite
    // main memory for the processor
    data_cache data_cache_
      (
-      .clk(clk & boot_done),
+      .clk(clk),
+      .boot_done(boot_done),
       .mem_cmd_en(c3_p0_cmd_en),
       .mem_cmd_instr(c3_p0_cmd_instr),
       .mem_cmd_bl(c3_p0_cmd_bl),
@@ -322,7 +326,8 @@ module consolite
    // for the processor to execute
    instr_cache instr_cache_
      (
-      .clk(clk & boot_done),
+      .clk(clk),
+      .boot_done(boot_done),
       .mem_cmd_en(c3_p3_cmd_en),
       .mem_cmd_instr(c3_p3_cmd_instr),
       .mem_cmd_bl(c3_p3_cmd_bl),

@@ -33,6 +33,7 @@
 module vga_buffer
   (
    input         clk,
+   input         calib_done,
    input [7:0]   x_coord,
    input [7:0]   y_coord,
    input         invalidate,
@@ -104,71 +105,73 @@ module vga_buffer
    reg         incr_valid_len = 0;
    reg         decr_valid_len = 0;
    always @ (posedge clk) begin
-      // Invalidate the first valid byte if requested
-      if (invalidate && !empty) begin
-         if (first_valid_byte == (`SCREEN_WIDTH * `SCREEN_HEIGHT) - 1) begin
-            first_valid_byte <= 0;
-         end else begin
-            first_valid_byte <= first_valid_byte + 1;
+      if (calib_done) begin
+         // Invalidate the first valid byte if requested
+         if (invalidate && !empty) begin
+            if (first_valid_byte == (`SCREEN_WIDTH * `SCREEN_HEIGHT) - 1) begin
+               first_valid_byte <= 0;
+            end else begin
+               first_valid_byte <= first_valid_byte + 1;
+            end
          end
-      end
-      // Refill logic
-      write_en <= 0;
-      mem_rd_en <= 0;
-      case (mem_state)
-        // In the idle state, don't do anything until the buffer
-        // starts to drain - then switch to command state
-        `MEM_STATE_IDLE: begin
-           if (valid_len != `VGA_BUF_SIZE) begin
-              mem_state <= `MEM_STATE_CMD;
+         // Refill logic
+         write_en <= 0;
+         mem_rd_en <= 0;
+         case (mem_state)
+           // In the idle state, don't do anything until the buffer
+           // starts to drain - then switch to command state
+           `MEM_STATE_IDLE: begin
+              if (valid_len != `VGA_BUF_SIZE) begin
+                 mem_state <= `MEM_STATE_CMD;
+              end
            end
-        end
-        // Request a read transaction from main memory, then switch
-        // to the wait state and wait for it to return data
-        `MEM_STATE_CMD: begin
-           mem_cmd_en <= ~mem_cmd_en;
-           if (mem_cmd_en) begin
-              mem_state <= `MEM_STATE_WAIT;
+           // Request a read transaction from main memory, then switch
+           // to the wait state and wait for it to return data
+           `MEM_STATE_CMD: begin
+              mem_cmd_en <= ~mem_cmd_en;
+              if (mem_cmd_en) begin
+                 mem_state <= `MEM_STATE_WAIT;
+              end
            end
-        end
-        // If there is data available to read and the buffer is missing
-        // at least 4 bytes (which is the amount of data we read at a time)
-        // then switch to the read state
-        `MEM_STATE_WAIT: begin
-           if (valid_len <= `VGA_BUF_SIZE - 4 && !mem_rd_empty) begin
-              mem_rd_en <= 1;
-              mem_state <= `MEM_STATE_READ;
+           // If there is data available to read and the buffer is missing
+           // at least 4 bytes (which is the amount of data we read at a time)
+           // then switch to the read state
+           `MEM_STATE_WAIT: begin
+              if (valid_len <= `VGA_BUF_SIZE - 4 && !mem_rd_empty) begin
+                 mem_rd_en <= 1;
+                 mem_state <= `MEM_STATE_READ;
+              end
            end
-        end
-        // Put the data into the buffer and mark it as valid. If we have
-        // read all words, go back to the idle state. If we empty the FIFO
-        // or fill up the buffer too fast, go back to the wait state
-        `MEM_STATE_READ: begin
-           write_en <= 1;
-           mem_words_read <= mem_words_read + 1;
-           if (mem_words_read == mem_cmd_bl) begin
-              mem_state <= `MEM_STATE_IDLE;
-           end else if (`VGA_BUF_SIZE - 4 < valid_len || mem_rd_empty) begin
-              mem_state <= `MEM_STATE_WAIT;
-           end else begin
-              mem_rd_en <= 1;
+           // Put the data into the buffer and mark it as valid. If we have
+           // read all words, go back to the idle state. If we empty the FIFO
+           // or fill up the buffer too fast, go back to the wait state
+           `MEM_STATE_READ: begin
+              write_en <= 1;
+              mem_words_read <= mem_words_read + 1;
+              if (mem_words_read == mem_cmd_bl) begin
+                 mem_state <= `MEM_STATE_IDLE;
+              end else if (`VGA_BUF_SIZE - 4 < valid_len || mem_rd_empty) begin
+                 mem_state <= `MEM_STATE_WAIT;
+              end else begin
+                 mem_rd_en <= 1;
+              end
            end
-        end
-      endcase
-      // Handle the case of incrementing and decrementing the valid_len at
-      // the same time, or just one or the other. We increment by 4 because
-      // we fetch 32 bits (4 bytes) from memory at a time, and decrement by
-      // 1 because we only invalidate 1 byte at a time
-      incr_valid_len = (`MEM_STATE_READ == mem_state);
-      decr_valid_len = (invalidate && !empty);
-      if (incr_valid_len) begin
-         if (decr_valid_len) begin
-            valid_len <= valid_len + 3;
-         end else begin
-            valid_len <= valid_len + 4;
+         endcase
+         // Handle the case of incrementing and decrementing the valid_len at
+         // the same time, or just one or the other. We increment by 4 because
+         // we fetch 32 bits (4 bytes) from memory at a time, and decrement by
+         // 1 because we only invalidate 1 byte at a time
+         incr_valid_len = (`MEM_STATE_READ == mem_state);
+         decr_valid_len = (invalidate && !empty);
+         if (incr_valid_len) begin
+            if (decr_valid_len) begin
+               valid_len <= valid_len + 3;
+            end else begin
+               valid_len <= valid_len + 4;
+            end
+         end else if (decr_valid_len) begin
+            valid_len <= valid_len - 1;
          end
-      end else if (decr_valid_len) begin
-         valid_len <= valid_len - 1;
       end
    end
 

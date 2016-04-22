@@ -10,6 +10,7 @@
 module data_cache
   (
    input             clk,
+   input             boot_done,
    output reg        mem_cmd_en,
    output reg [2:0]  mem_cmd_instr,
    output reg [5:0]  mem_cmd_bl,

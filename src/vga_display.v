@@ -11,6 +11,7 @@
 module vga_display
   (
    input            clk,
+   input            calib_done,
    output           hsync,
    output           vsync,
    output reg [7:0] rgb,
@@ -42,6 +43,7 @@ module vga_display
    vga_buffer vga_buffer_
      (
       .clk(clk),
+      .calib_done(calib_done),
       .x_coord(x_coord),
       .y_coord(y_coord),
       .invalidate(buf_invalidate),
@@ -67,7 +69,9 @@ module vga_display
    reg [1:0]        counter = 0;
    wire             pixel_clk = counter[1];
    always @ (posedge clk) begin
-      counter <= counter + 1;
+      if (calib_done) begin
+         counter <= counter + 1;
+      end
    end
 
    // Counter for VGA (x, y) coords
