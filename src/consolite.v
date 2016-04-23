@@ -185,7 +185,6 @@ module consolite
       .mem_error(mcb3_error),
       .clear_screen_done(clear_screen_done),
       .sdcard_read_done(sdcard_read_done),
-      .vga_buf_empty(vga_buf_empty),
       .seg_digits(seg_digits)
       );
 
@@ -206,7 +205,6 @@ module consolite
       .hsync(hsync),
       .vsync(vsync),
       .rgb(rgb),
-      .buf_empty(vga_buf_empty),
       .mem_cmd_en(c3_p2_cmd_en),
       .mem_cmd_instr(c3_p2_cmd_instr),
       .mem_cmd_bl(c3_p2_cmd_bl),

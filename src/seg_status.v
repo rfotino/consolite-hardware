@@ -14,7 +14,6 @@ module seg_status
    input wire        mem_error, // Bit error with LPDDR RAM
    input wire        clear_screen_done, // Done zeroing video memory
    input wire        sdcard_read_done, // Done loading SD card contents into RAM
-   input wire        vga_buf_empty, // VGA buffer empty
    output reg [11:0] seg_digits
    );
 
@@ -27,8 +26,6 @@ module seg_status
          seg_digits = `STATE_CLEAR_SCREEN;
       end else if (!sdcard_read_done) begin
          seg_digits = `STATE_SDCARD_READ;
-      end else if (vga_buf_empty) begin
-         seg_digits = `STATE_VGA_BUF_EMPTY;
       end else begin
          seg_digits = `STATE_DEFAULT;
       end

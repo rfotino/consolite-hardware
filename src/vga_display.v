@@ -15,7 +15,6 @@ module vga_display
    output           hsync,
    output           vsync,
    output reg [7:0] rgb,
-   output           buf_empty,
    // Main memory control signals
    output           mem_cmd_en,
    output [2:0]     mem_cmd_instr,
@@ -47,7 +46,6 @@ module vga_display
       .x_coord(x_coord),
       .y_coord(y_coord),
       .invalidate(buf_invalidate),
-      .empty(buf_empty),
       .rgb(buf_rgb),
       .mem_cmd_en(mem_cmd_en),
       .mem_cmd_instr(mem_cmd_instr),

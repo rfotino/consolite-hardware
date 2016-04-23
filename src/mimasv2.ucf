@@ -62,7 +62,7 @@ NET "buttons[0]" LOC = K18 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST | P
 NET "sdcard_cs"   LOC = L13 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
 NET "sdcard_sclk" LOC = L12 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
 NET "sdcard_mosi" LOC = G16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "sdcard_miso" LOC = K14 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "sdcard_miso" LOC = K14 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST | PULLUP;
 
 ###############################################################################
 #                           Seven Segment Display                             #
