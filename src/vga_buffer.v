@@ -75,12 +75,13 @@ module vga_buffer
 
    // The buffer of data itself, stored in a block RAM
    reg         write_en = 0;
+   reg [5:0]   write_addr = 0;
    vga_block_ram vga_block_ram_
      (
       .clk(clk),
       // Write signals
       .wr_en(write_en),
-      .wr_addr(mem_words_read),
+      .wr_addr(write_addr),
       .wr_data(mem_rd_data),
       // Read signals
       .rd_addr(x_coord),
@@ -94,11 +95,6 @@ module vga_buffer
       write_en <= 0;
       mem_rd_en <= 0;
       if (calib_done) begin
-         // The invalid index is the highest x coordinate that is currently
-         // invalid and can be replaced with fresh data
-         if (invalidate && invalid_index < x_coord) begin
-            invalid_index <= x_coord;
-         end
          // State machine to handle memory accesses
          case (mem_state)
            // In the idle state, don't do anything until the invalidate
@@ -124,14 +120,24 @@ module vga_buffer
            // then switch to the read state. We may get stuck in this state,
            // so if we timeout just abandon the read and switch back to idling
            `MEM_STATE_WAIT: begin
-              if (mem_words_read < invalid_index[7:2] && !mem_rd_empty) begin
-                 mem_rd_en <= 1;
-                 mem_state <= `MEM_STATE_READ;
-              end else if (`MEM_WAIT_TIMEOUT <= mem_wait_timer) begin
-                 mem_words_read <= 0;
-                 mem_state <= `MEM_STATE_IDLE;
-              end else begin
-                 mem_wait_timer <= mem_wait_timer + 1;
+              // The invalid index is the highest x coordinate that is
+              // currently invalid and can be replaced with fresh data
+              if (invalid_index < x_coord) begin
+                 invalid_index <= x_coord;
+              end
+              // Once the line we are going to replace has been completely
+              // displayed, we can start replacing it with bytes read from
+              // main memory
+              if (invalid_index == 255) begin
+                 if (!mem_rd_empty) begin
+                    mem_rd_en <= 1;
+                    mem_state <= `MEM_STATE_READ;
+                 end else if (`MEM_WAIT_TIMEOUT <= mem_wait_timer) begin
+                    mem_words_read <= 0;
+                    mem_state <= `MEM_STATE_IDLE;
+                 end else begin
+                    mem_wait_timer <= mem_wait_timer + 1;
+                 end
               end
            end
            // Put the data into the buffer and mark it as valid. If we have
@@ -139,10 +145,11 @@ module vga_buffer
            // or fill up the buffer too fast, go back to the wait state
            `MEM_STATE_READ: begin
               write_en <= 1;
+              write_addr <= mem_words_read;
               mem_words_read <= mem_words_read + 1;
               if (mem_words_read == mem_cmd_bl) begin
                  mem_state <= `MEM_STATE_IDLE;
-              end else if (invalid_index[7:2] <= mem_words_read || mem_rd_empty) begin
+              end else if (mem_rd_empty) begin
                  mem_state <= `MEM_STATE_WAIT;
                  mem_wait_timer <= 0;
               end else begin
