@@ -13,7 +13,8 @@ module seg_status
    input wire        mem_calib_done, // LPDDR RAM calibration complete
    input wire        mem_error, // Bit error with LPDDR RAM
    input wire        clear_screen_done, // Done zeroing video memory
-   input wire        sdcard_read_done, // Done loading SD card contents into RAM
+   input wire        uart_load_done, // Done loading data from UART into RAM
+   input wire [7:0]  uart_progress,
    output reg [11:0] seg_digits
    );
 
@@ -24,8 +25,9 @@ module seg_status
          seg_digits = `STATE_MEM_ERROR;
       end else if (!clear_screen_done) begin
          seg_digits = `STATE_CLEAR_SCREEN;
-      end else if (!sdcard_read_done) begin
-         seg_digits = `STATE_SDCARD_READ;
+      end else if (!uart_load_done) begin
+         seg_digits = { 4'h2, uart_progress };
+         //seg_digits = `STATE_UART_LOAD;
       end else begin
          seg_digits = `STATE_DEFAULT;
       end

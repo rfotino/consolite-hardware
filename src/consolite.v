@@ -27,10 +27,12 @@ module consolite
    input [7:0]   gpio_p8,
    input [7:0]   gpio_p9,
    // Micro SD card inputs and outputs
-   output        sdcard_cs,
-   output        sdcard_sclk,
-   output        sdcard_mosi,
-   input         sdcard_miso,
+   //output        sdcard_cs,
+   //output        sdcard_sclk,
+   //output        sdcard_mosi,
+   //input         sdcard_miso,
+   // UART inputs and outputs
+   input         uart_rx,
    // LPDDR RAM inputs and outputs
    inout [15:0]  mcb3_dram_dq,
    output [12:0] mcb3_dram_a,
@@ -53,8 +55,8 @@ module consolite
 
    // Some functions can't be started until we have booted
    wire clear_screen_done;
-   wire sdcard_read_done;
-   wire boot_done = mcb3_calib_done & clear_screen_done & sdcard_read_done;
+   wire uart_load_done;
+   wire boot_done = mcb3_calib_done & clear_screen_done & uart_load_done;
 
    // Main memory port 0 (read/write) for data cache
    wire        c3_p0_cmd_clk;
@@ -148,6 +150,7 @@ module consolite
    wire [45:0] buf_inputs;
    input_handler input_handler_
      (
+      .clk(clk),
       .buttons(buttons),
       .switches(switches),
       .gpio_p6(gpio_p6),
@@ -179,12 +182,14 @@ module consolite
    // Determines the digits for the 7-segment display,
    // based on status/error conditions
    wire [11:0]    seg_digits;
+   wire [7:0]     uart_progress;
    seg_status seg_status_
      (
+      .uart_progress(uart_progress),
       .mem_calib_done(mcb3_calib_done),
       .mem_error(mcb3_error),
       .clear_screen_done(clear_screen_done),
-      .sdcard_read_done(sdcard_read_done),
+      .uart_load_done(uart_load_done),
       .seg_digits(seg_digits)
       );
 
@@ -264,17 +269,15 @@ module consolite
       .mem_wr_error(c3_p4_wr_error)
       );
 
-   // SD card reader, loads the first 64Kib off of the micro SD
-   // card and writes it to RAM for the processor to execute
-   sdcard_reader sdcard_reader_
+   // UART receiver, receives the first 64 KiB from the serial
+   // port and writes it to RAM for the processor to execute
+   uart_loader uart_loader_
      (
       .clk(clk),
       .calib_done(mcb3_calib_done),
-      .sdcard_read_done(sdcard_read_done),
-      .sdcard_cs(sdcard_cs),
-      .sdcard_sclk(sdcard_sclk),
-      .sdcard_mosi(sdcard_mosi),
-      .sdcard_miso(sdcard_miso),
+      .load_done(uart_load_done),
+      .progress(uart_progress),
+      .rx(uart_rx),
       .mem_cmd_en(c3_p5_cmd_en),
       .mem_cmd_instr(c3_p5_cmd_instr),
       .mem_cmd_bl(c3_p5_cmd_bl),

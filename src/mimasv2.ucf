@@ -11,8 +11,8 @@ NET "clk"        LOC = V10     | IOSTANDARD = LVCMOS33 | PERIOD = 100MHz;
 ###############################################################################
 #                           UART Interface                                    #
 ############################################################################### 
-#NET "UART_TX" LOC = A8 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-#NET "UART_RX" LOC = B8 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+NET "uart_rx" LOC = A8 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+#NET "uart_tx" LOC = B8 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
 
 ###############################################################################
 #                           SPI Flash                                         #
@@ -59,10 +59,10 @@ NET "buttons[0]" LOC = K18 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST | P
 ###############################################################################
 #                           Micro SD Card                                     #
 ###############################################################################
-NET "sdcard_cs"   LOC = L13 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "sdcard_sclk" LOC = L12 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "sdcard_mosi" LOC = G16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
-NET "sdcard_miso" LOC = K14 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST | PULLUP;
+#NET "sdcard_cs"   LOC = L13 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+#NET "sdcard_sclk" LOC = L12 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+#NET "sdcard_mosi" LOC = G16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;
+#NET "sdcard_miso" LOC = K14 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST | PULLUP;
 
 ###############################################################################
 #                           Seven Segment Display                             #

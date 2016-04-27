@@ -42,5 +42,5 @@
 `define STATE_MEM_UNCALIB   12'h500
 `define STATE_MEM_ERROR     12'h501
 `define STATE_CLEAR_SCREEN  12'h502
-`define STATE_SDCARD_READ   12'h503
+`define STATE_UART_LOAD     12'h503
 `define STATE_DEFAULT       12'h100
