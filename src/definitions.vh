@@ -27,6 +27,8 @@
 
 // Bits in a Consolite word
 `define WORD_BITS           16
+`define ADDR_BITS           16
+`define INSTR_BITS          32
 
 // Memory accesses are 16 bits, but the LPDDR RAM
 // has 30-bit address sizes. To access different

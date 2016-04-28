@@ -146,6 +146,14 @@ module consolite
    wire        c3_p5_wr_underrun;
    wire        c3_p5_wr_error;
 
+   // Instruction pointer, the current instruction, and a flag
+   // that tells whether the current instruction is valid. When
+   // the instruction pointer changes, the instr_valid flag goes
+   // low until the cur_instr has been fetched
+   wire [`ADDR_BITS-1:0]  instr_ptr;
+   wire [`INSTR_BITS-1:0] cur_instr;
+   wire                   instr_valid;
+
    // Buffers the input for INPUT instructions
    wire [45:0] buf_inputs;
    input_handler input_handler_
@@ -329,6 +337,9 @@ module consolite
      (
       .clk(clk),
       .boot_done(boot_done),
+      .instr_ptr(instr_ptr),
+      .valid(instr_valid),
+      .instr(cur_instr),
       .mem_cmd_en(c3_p3_cmd_en),
       .mem_cmd_instr(c3_p3_cmd_instr),
       .mem_cmd_bl(c3_p3_cmd_bl),
