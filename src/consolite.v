@@ -154,6 +154,16 @@ module consolite
    wire [`INSTR_BITS-1:0] cur_instr;
    wire                   instr_valid;
 
+   // Signals for communicating with the data cache
+   wire                  data_wr_en;
+   wire [`ADDR_BITS-1:0] data_wr_addr;
+   wire [`WORD_BITS-1:0] data_wr_data;
+   wire                  data_wr_done;
+   wire                  data_rd_en;
+   wire [`ADDR_BITS-1:0] data_rd_addr;
+   wire [`WORD_BITS-1:0] data_rd_data;
+   wire                  data_rd_done;
+
    // Buffers the input for INPUT instructions
    wire [45:0] buf_inputs;
    input_handler input_handler_
@@ -308,6 +318,14 @@ module consolite
      (
       .clk(clk),
       .boot_done(boot_done),
+      .wr_en(data_wr_en),
+      .wr_addr(data_wr_addr),
+      .wr_data(data_wr_data),
+      .wr_done(data_wr_done),
+      .rd_en(data_rd_en),
+      .rd_addr(data_rd_addr),
+      .rd_data(data_rd_data),
+      .rd_done(data_rd_done),
       .mem_cmd_en(c3_p0_cmd_en),
       .mem_cmd_instr(c3_p0_cmd_instr),
       .mem_cmd_bl(c3_p0_cmd_bl),
