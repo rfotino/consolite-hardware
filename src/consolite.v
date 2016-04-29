@@ -372,7 +372,7 @@ module consolite
       .cache_wr_en(cache_wr_en),
       .cache_wr_addr(cache_wr_addr),
       .cache_wr_data(cache_wr_data),
-      .cache_wr_done(caceh_wr_done),
+      .cache_wr_done(cache_wr_done),
       .cache_rd_en(cache_rd_en),
       .cache_rd_addr(cache_rd_addr),
       .cache_rd_data(cache_rd_data),

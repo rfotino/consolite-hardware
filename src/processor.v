@@ -93,7 +93,9 @@ module processor
    reg [2:0]            state = STATE_PRE_BOOT;
    always @ (posedge clk) begin
       // Output our state + lower bits of instruction pointer
-      status <= { 1'b0, state, instr_ptr[7:0] };
+      if (STATE_HALT != state) begin
+         status <= { 1'b0, state, instr_ptr[7:0] };
+      end
       // Default enables to off
       cache_wr_en <= 0;
       cache_rd_en <= 0;
@@ -158,22 +160,38 @@ module processor
            // Push the instruction pointer onto the stack
            // and jump to ADDR
            `OPCODE_CALL: begin
-              push(instr_ptr);
-              instr_ptr <= argA;
+              if (cache_wr_done) begin
+                 push(instr_ptr);
+                 instr_ptr <= argA;
+              end else begin
+                 instr_ptr <= instr_ptr;
+              end
            end
            // RET NUM
            `OPCODE_RET: begin
-              pop();
-              registers[`REG_SP] <= registers[`REG_SP] - arg1 - `WORD_BYTES;
-              state <= STATE_RET_WAIT;
+              if (cache_rd_done) begin
+                 pop();
+                 registers[`REG_SP] <= registers[`REG_SP] - arg1 - `WORD_BYTES;
+                 state <= STATE_RET_WAIT;
+              end else begin
+                 instr_ptr <= instr_ptr;
+              end
            end
            // LOAD DEST SRC
            `OPCODE_LOAD: begin
-              read(src);
+              if (cache_rd_done) begin
+                 read(src);
+              end else begin
+                 instr_ptr <= instr_ptr;
+              end
            end
            // LOADI DEST ADDR
            `OPCODE_LOADI: begin
-              read(argB);
+              if (cache_rd_done) begin
+                 read(argB);
+              end else begin
+                 instr_ptr <= instr_ptr;
+              end
            end
            // MOV DEST SRC
            `OPCODE_MOV: begin
@@ -185,11 +203,19 @@ module processor
            end
            // PUSH REG
            `OPCODE_PUSH: begin
-              push(dest);
+              if (cache_wr_done) begin
+                 push(dest);
+              end else begin
+                 instr_ptr <= instr_ptr;
+              end
            end
            // POP REG
            `OPCODE_POP: begin
-              pop();
+              if (cache_rd_done) begin
+                 pop();
+              end else begin
+                 instr_ptr <= instr_ptr;
+              end
            end
            // ADD DEST SRC
            // Sets flags
@@ -272,11 +298,19 @@ module processor
            end
            // STOR DEST SRC
            `OPCODE_STOR: begin
-              write(dest, src);
+              if (cache_wr_done) begin
+                 write(dest, src);
+              end else begin
+                 instr_ptr <= instr_ptr;
+              end
            end
            // STOR DEST ADDR
            `OPCODE_STORI: begin
-              write(dest, argB);
+              if (cache_wr_done) begin
+                 write(dest, argB);
+              end else begin
+                 instr_ptr <= instr_ptr;
+              end
            end
            // TIME DEST
            `OPCODE_TIME: begin
