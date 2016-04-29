@@ -134,7 +134,7 @@ module processor
         end
         STATE_RET_WAIT: begin
            if (cache_rd_done) begin
-              instr_ptr <= cache_rd_data;
+              instr_ptr <= cache_rd_data + `INSTR_BYTES;
               state <= STATE_EXECUTING;
            end
         end
