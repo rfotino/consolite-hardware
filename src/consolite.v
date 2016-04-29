@@ -146,24 +146,6 @@ module consolite
    wire        c3_p5_wr_underrun;
    wire        c3_p5_wr_error;
 
-   // Instruction pointer, the current instruction, and a flag
-   // that tells whether the current instruction is valid. When
-   // the instruction pointer changes, the instr_valid flag goes
-   // low until the cur_instr has been fetched
-   wire [`ADDR_BITS-1:0]  instr_ptr;
-   wire [`INSTR_BITS-1:0] cur_instr;
-   wire                   instr_valid;
-
-   // Signals for communicating with the data cache
-   wire                  data_wr_en;
-   wire [`ADDR_BITS-1:0] data_wr_addr;
-   wire [`WORD_BITS-1:0] data_wr_data;
-   wire                  data_wr_done;
-   wire                  data_rd_en;
-   wire [`ADDR_BITS-1:0] data_rd_addr;
-   wire [`WORD_BITS-1:0] data_rd_data;
-   wire                  data_rd_done;
-
    // Buffers the input for INPUT instructions
    wire [45:0] buf_inputs;
    input_handler input_handler_
@@ -180,11 +162,12 @@ module consolite
 
    // A reset-able millisecond timer for TIME and
    // TIMERST instructions
+   wire                  ms_time_rst;
    wire [`WORD_BITS-1:0] ms_time;
    ms_timer ms_timer_
      (
       .clk(clk),
-      .reset(buf_inputs[0]),
+      .reset(ms_time_rst),
       .ms_time(ms_time)
       );
 
@@ -199,15 +182,17 @@ module consolite
 
    // Determines the digits for the 7-segment display,
    // based on status/error conditions
-   wire [11:0]    seg_digits;
    wire [7:0]     uart_progress;
+   wire [11:0]    processor_status;
+   wire [11:0]    seg_digits;
    seg_status seg_status_
      (
-      .uart_progress(uart_progress),
       .mem_calib_done(mcb3_calib_done),
       .mem_error(mcb3_error),
       .clear_screen_done(clear_screen_done),
       .uart_load_done(uart_load_done),
+      .uart_progress(uart_progress),
+      .processor_status(processor_status),
       .seg_digits(seg_digits)
       );
 
@@ -243,24 +228,12 @@ module consolite
       .mem_rd_error(c3_p2_rd_error)
       );
 
-   // A test for the pixel writer
+   // A writer to video memory
    wire pixel_wr_done;
    wire pixel_en;
    wire [7:0] pixel_rgb;
    wire [7:0] pixel_x;
    wire [7:0] pixel_y;
-   pixel_tester pixel_tester_
-     (
-      .clk(clk),
-      .clear_screen_done(clear_screen_done),
-      .pixel_wr_done(pixel_wr_done),
-      .pixel_en(pixel_en),
-      .pixel_rgb(pixel_rgb),
-      .pixel_x(pixel_x),
-      .pixel_y(pixel_y)
-      );
-
-   // A writer to video memory
    pixel_writer pixel_writer_
      (
       .clk(clk),
@@ -314,18 +287,26 @@ module consolite
 
    // Data cache, handles loads and stores to and from
    // main memory for the processor
+   wire                  cache_wr_en;
+   wire [`ADDR_BITS-1:0] cache_wr_addr;
+   wire [`WORD_BITS-1:0] cache_wr_data;
+   wire                  cache_wr_done;
+   wire                  cache_rd_en;
+   wire [`ADDR_BITS-1:0] cache_rd_addr;
+   wire [`WORD_BITS-1:0] cache_rd_data;
+   wire                  cache_rd_done;
    data_cache data_cache_
      (
       .clk(clk),
       .boot_done(boot_done),
-      .wr_en(data_wr_en),
-      .wr_addr(data_wr_addr),
-      .wr_data(data_wr_data),
-      .wr_done(data_wr_done),
-      .rd_en(data_rd_en),
-      .rd_addr(data_rd_addr),
-      .rd_data(data_rd_data),
-      .rd_done(data_rd_done),
+      .wr_en(cache_wr_en),
+      .wr_addr(cache_wr_addr),
+      .wr_data(cache_wr_data),
+      .wr_done(cache_wr_done),
+      .rd_en(cache_rd_en),
+      .rd_addr(cache_rd_addr),
+      .rd_data(cache_rd_data),
+      .rd_done(cache_rd_done),
       .mem_cmd_en(c3_p0_cmd_en),
       .mem_cmd_instr(c3_p0_cmd_instr),
       .mem_cmd_bl(c3_p0_cmd_bl),
@@ -351,6 +332,9 @@ module consolite
 
    // Instruction cache, handles fetching instructions
    // for the processor to execute
+   wire [`ADDR_BITS-1:0]  instr_ptr;
+   wire [`INSTR_BITS-1:0] cur_instr;
+   wire                   instr_valid;
    instr_cache instr_cache_
      (
       .clk(clk),
@@ -371,6 +355,41 @@ module consolite
       .mem_rd_count(c3_p3_rd_count),
       .mem_rd_overflow(c3_p3_rd_overflow),
       .mem_rd_error(c3_p3_rd_error)
+      );
+
+   // The central processing unit that actually does
+   // the executing of instructions
+   processor processor_
+     (
+      .clk(clk),
+      .boot_done(boot_done),
+      .status(processor_status),
+      // Instruction cache
+      .instr_ptr(instr_ptr),
+      .instr_valid(instr_valid),
+      .cur_instr(cur_instr),
+      // Data cache
+      .cache_wr_en(cache_wr_en),
+      .cache_wr_addr(cache_wr_addr),
+      .cache_wr_data(cache_wr_data),
+      .cache_wr_done(caceh_wr_done),
+      .cache_rd_en(cache_rd_en),
+      .cache_rd_addr(cache_rd_addr),
+      .cache_rd_data(cache_rd_data),
+      .cache_rd_done(cache_rd_done),
+      // Pixel writer
+      .pixel_wr_done(pixel_wr_done),
+      .pixel_en(pixel_en),
+      .pixel_rgb(pixel_rgb),
+      .pixel_x(pixel_x),
+      .pixel_y(pixel_y),
+      // Random data
+      .rnd(rnd),
+      // Millisecond timer
+      .ms_time_rst(ms_time_rst),
+      .ms_time(ms_time),
+      // User input
+      .buf_inputs(buf_inputs)
       );
 
    // Create an instance of the LPDDR memory interface

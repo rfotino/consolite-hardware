@@ -45,9 +45,9 @@ module data_cache
    );
 
    initial begin
-      wr_done = 0;
+      wr_done = 1;
       rd_data = 0;
-      rd_done = 0;
+      rd_done = 1;
       mem_cmd_en = 0;
       mem_wr_en = 0;
       mem_rd_en = 0;

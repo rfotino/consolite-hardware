@@ -13,7 +13,7 @@ module instr_cache
    input                        boot_done,
    // Requests for instructions
    input [`ADDR_BITS-1:0]       instr_ptr,
-   output reg                   valid,
+   output                       valid,
    output reg [`INSTR_BITS-1:0] instr,
    // Main memory controls
    output reg                   mem_cmd_en,
@@ -32,7 +32,6 @@ module instr_cache
    );
 
    initial begin
-      valid = 0;
       instr = 0;
       mem_cmd_en = 0;
       mem_cmd_byte_addr = 0;
@@ -50,23 +49,20 @@ module instr_cache
    `define STATE_WAIT     2
    `define STATE_READ     3
    reg [1:0]  state = `STATE_PRE_BOOT;
-   reg [29:0] prefixed_instr_ptr;
+   wire [29:0] prefixed_instr_ptr = { `MAIN_MEM_PREFIX, instr_ptr };
+   assign valid = (`STATE_CMD == state) && (mem_cmd_byte_addr == prefixed_instr_ptr);
    always @ (posedge clk) begin
       mem_cmd_en <= 0;
       mem_rd_en <= 0;
       case (state)
          `STATE_PRE_BOOT: begin
             if (boot_done) begin
-               state <= `STATE_CMD;
+               send_cmd();
             end
          end
          `STATE_CMD: begin
-            prefixed_instr_ptr = { `MAIN_MEM_PREFIX, instr_ptr };
-            if (!valid || (mem_cmd_byte_addr != prefixed_instr_ptr)) begin
-               valid = 0;
-               mem_cmd_en <= 1;
-               mem_cmd_byte_addr <= prefixed_instr_ptr;
-               state <= `STATE_WAIT;
+            if (mem_cmd_byte_addr != prefixed_instr_ptr) begin
+               send_cmd();
             end
          end
          `STATE_WAIT: begin
@@ -76,11 +72,18 @@ module instr_cache
             end
          end
          `STATE_READ: begin
-            valid = 1;
-            instr = mem_rd_data;
+            instr <= mem_rd_data;
             state <= `STATE_CMD;
          end
       endcase
    end
+
+   task send_cmd;
+      begin
+         mem_cmd_en <= 1;
+         mem_cmd_byte_addr <= prefixed_instr_ptr;
+         state <= `STATE_WAIT;
+      end
+   endtask
 
 endmodule

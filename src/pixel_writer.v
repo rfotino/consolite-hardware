@@ -55,6 +55,8 @@ module pixel_writer
    reg [6:0] word_index = 0;
    reg [7:0] line_index = 0;
    always @ (posedge clk) begin
+      mem_cmd_en <= 0;
+      mem_wr_en <= 0;
       if (calib_done) begin
          case (state)
            `STATE_CLEAR_SCREEN_WRITE: begin
@@ -76,7 +78,6 @@ module pixel_writer
               end
            end
            `STATE_CLEAR_SCREEN_CMD: begin
-              mem_cmd_en <= 0;
               if (mem_wr_empty) begin
                  if (line_index == 191) begin
                     clear_screen_done <= 1;
@@ -102,12 +103,9 @@ module pixel_writer
               end
            end
            `STATE_PIXEL_CMD: begin
-              mem_wr_en <= 0;
               mem_cmd_bl <= 6'b000000;
-              mem_cmd_en <= ~mem_cmd_en;
-              if (mem_cmd_en) begin
-                 state <= `STATE_PIXEL_WRITE;
-              end
+              mem_cmd_en <= 1;
+              state <= `STATE_PIXEL_WRITE;
            end
          endcase
       end

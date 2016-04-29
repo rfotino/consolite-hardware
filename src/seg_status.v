@@ -14,7 +14,8 @@ module seg_status
    input wire        mem_error, // Bit error with LPDDR RAM
    input wire        clear_screen_done, // Done zeroing video memory
    input wire        uart_load_done, // Done loading data from UART into RAM
-   input wire [7:0]  uart_progress,
+   input wire [7:0]  uart_progress, // UART receiving progress from 0-255
+   input wire [11:0] processor_status, // Shown in normal operation after boot
    output reg [11:0] seg_digits
    );
 
@@ -26,10 +27,9 @@ module seg_status
       end else if (!clear_screen_done) begin
          seg_digits = `STATE_CLEAR_SCREEN;
       end else if (!uart_load_done) begin
-         seg_digits = { 4'h2, uart_progress };
-         //seg_digits = `STATE_UART_LOAD;
+         seg_digits = `STATE_UART_LOAD | uart_progress;
       end else begin
-         seg_digits = `STATE_DEFAULT;
+         seg_digits = processor_status;
       end
    end
 
