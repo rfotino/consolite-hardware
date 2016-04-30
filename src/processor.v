@@ -82,6 +82,24 @@ module processor
    // into while we are waiting to hear back from the data cache
    reg [3:0]             load_reg;
 
+   // A multi-cycle divider module for the expensive DIV instruction
+   reg                   divide_en = 0;
+   reg [`WORD_BITS-1:0]  dividend;
+   reg [`WORD_BITS-1:0]  divisor;
+   wire [`WORD_BITS-1:0] quotient;
+   wire [`WORD_BITS-1:0] remainder;
+   wire                  divide_done;
+   divider #(.BITS(`WORD_BITS)) divider_
+     (
+      .clk(clk),
+      .en(divide_en),
+      .dividend(dividend),
+      .divisor(divisor),
+      .quotient(quotient),
+      .remainder(remainder),
+      .done(divide_done)
+      );
+
    // The state machine for executing instructions
    localparam [2:0] STATE_PRE_BOOT   = 0;
    localparam [2:0] STATE_HALT       = 1;
@@ -90,6 +108,7 @@ module processor
    localparam [2:0] STATE_PIXEL_WAIT = 4;
    localparam [2:0] STATE_RD_WAIT    = 5;
    localparam [2:0] STATE_RET_WAIT   = 6;
+   localparam [2:0] STATE_DIVIDE     = 7;
    reg [2:0]            state = STATE_PRE_BOOT;
    always @ (posedge clk) begin
       // Output our state + lower bits of instruction pointer
@@ -100,6 +119,7 @@ module processor
       cache_wr_en <= 0;
       cache_rd_en <= 0;
       pixel_en <= 0;
+      divide_en <= 0;
       ms_time_rst <= 0;
       // State machine
       case (state)
@@ -135,6 +155,12 @@ module processor
         STATE_RET_WAIT: begin
            if (cache_rd_done) begin
               instr_ptr <= cache_rd_data + `INSTR_BYTES;
+              state <= STATE_EXECUTING;
+           end
+        end
+        STATE_DIVIDE: begin
+           if (divide_done) begin
+              registers[load_reg] <= quotient;
               state <= STATE_EXECUTING;
            end
         end
@@ -234,15 +260,17 @@ module processor
            end
            // DIV DEST SRC
            // On divide by zero, set dest to all ones
-           /*
            `OPCODE_DIV: begin
-              if (0 == src) begin
-                 registers[reg1] <= {`WORD_BITS{1'b1}};
+              if (divide_done) begin
+                 divide_en <= 1;
+                 dividend <= dest;
+                 divisor <= src;
+                 state <= STATE_DIVIDE;
+                 load_reg <= reg1;
               end else begin
-                 registers[reg1] <= dest / src;
+                 instr_ptr <= instr_ptr;
               end
            end
-           */
            // AND DEST SRC
            `OPCODE_AND: begin
               registers[reg1] <= dest & src;
