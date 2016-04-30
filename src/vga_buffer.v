@@ -76,13 +76,14 @@ module vga_buffer
    // The buffer of data itself, stored in a block RAM
    reg         write_en = 0;
    reg [5:0]   write_addr = 0;
+   reg [31:0]  write_data = 0;
    vga_block_ram vga_block_ram_
      (
       .clk(clk),
       // Write signals
       .wr_en(write_en),
       .wr_addr(write_addr),
-      .wr_data(mem_rd_data),
+      .wr_data(write_data),
       // Read signals
       .rd_addr(x_coord),
       .rd_data(rgb)
@@ -146,6 +147,7 @@ module vga_buffer
            `MEM_STATE_READ: begin
               write_en <= 1;
               write_addr <= mem_words_read;
+              write_data <= mem_rd_data;
               mem_words_read <= mem_words_read + 1;
               if (mem_words_read == mem_cmd_bl) begin
                  mem_state <= `MEM_STATE_IDLE;
