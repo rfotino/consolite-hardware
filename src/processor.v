@@ -82,6 +82,22 @@ module processor
    // into while we are waiting to hear back from the data cache
    reg [3:0]             load_reg;
 
+   // A multi-cycle multiplier module for MUL instructions
+   reg                       multiply_en = 0;
+   reg [`WORD_BITS-1:0]      multiply_data_a;
+   reg [`WORD_BITS-1:0]      multiply_data_b;
+   wire [(`WORD_BITS*2)-1:0] multiply_result;
+   wire                      multiply_done;
+   multiplier #(.BITS(`WORD_BITS)) multiplier_
+     (
+      .clk(clk),
+      .en(multiply_en),
+      .data_a(multiply_data_a),
+      .data_b(multiply_data_b),
+      .result(multiply_result),
+      .done(multiply_done)
+      );
+
    // A multi-cycle divider module for the expensive DIV instruction
    reg                   divide_en = 0;
    reg [`WORD_BITS-1:0]  dividend;
@@ -101,15 +117,16 @@ module processor
       );
 
    // The state machine for executing instructions
-   localparam [2:0] STATE_PRE_BOOT   = 0;
-   localparam [2:0] STATE_HALT       = 1;
-   localparam [2:0] STATE_EXECUTING  = 2;
-   localparam [2:0] STATE_WR_WAIT    = 3;
-   localparam [2:0] STATE_PIXEL_WAIT = 4;
-   localparam [2:0] STATE_RD_WAIT    = 5;
-   localparam [2:0] STATE_RET_WAIT   = 6;
-   localparam [2:0] STATE_DIVIDE     = 7;
-   reg [2:0]            state = STATE_PRE_BOOT;
+   localparam [3:0] STATE_PRE_BOOT   = 0;
+   localparam [3:0] STATE_HALT       = 1;
+   localparam [3:0] STATE_EXECUTING  = 2;
+   localparam [3:0] STATE_WR_WAIT    = 3;
+   localparam [3:0] STATE_PIXEL_WAIT = 4;
+   localparam [3:0] STATE_RD_WAIT    = 5;
+   localparam [3:0] STATE_RET_WAIT   = 6;
+   localparam [3:0] STATE_MULTIPLY   = 7;
+   localparam [3:0] STATE_DIVIDE     = 8;
+   reg [3:0]            state = STATE_PRE_BOOT;
    always @ (posedge clk) begin
       // Output our state + lower bits of instruction pointer
       if (STATE_HALT != state) begin
@@ -119,6 +136,7 @@ module processor
       cache_wr_en <= 0;
       cache_rd_en <= 0;
       pixel_en <= 0;
+      multiply_en <= 0;
       divide_en <= 0;
       ms_time_rst <= 0;
       // State machine
@@ -155,6 +173,12 @@ module processor
         STATE_RET_WAIT: begin
            if (cache_rd_done) begin
               instr_ptr <= cache_rd_data + `INSTR_BYTES;
+              state <= STATE_EXECUTING;
+           end
+        end
+        STATE_MULTIPLY: begin
+           if (multiply_done) begin
+              registers[load_reg] <= multiply_result[`WORD_BITS-1:0];
               state <= STATE_EXECUTING;
            end
         end
@@ -256,7 +280,15 @@ module processor
            end
            // MUL DEST SRC
            `OPCODE_MUL: begin
-              registers[reg1] <= dest * src;
+              if (multiply_done) begin
+                 multiply_en <= 1;
+                 multiply_data_a <= dest;
+                 multiply_data_b <= src;
+                 state <= STATE_MULTIPLY;
+                 load_reg <= reg1;
+              end else begin
+                 instr_ptr <= instr_ptr;
+              end
            end
            // DIV DEST SRC
            // On divide by zero, set dest to all ones
