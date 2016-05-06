@@ -5,16 +5,16 @@
  */
 
 // VGA timing
-`define VGA_WIDTH           640
-`define VGA_H_FRONT_PORCH   16
-`define VGA_H_SYNC_PULSE    96
-`define VGA_H_BACK_PORCH    48
+`define VGA_WIDTH           1024
+`define VGA_H_FRONT_PORCH   24
+`define VGA_H_SYNC_PULSE    136
+`define VGA_H_BACK_PORCH    160
 `define VGA_H_TOTAL         (`VGA_WIDTH + `VGA_H_FRONT_PORCH + \
                              `VGA_H_SYNC_PULSE + `VGA_H_BACK_PORCH)
-`define VGA_HEIGHT          480
-`define VGA_V_FRONT_PORCH   10
-`define VGA_V_SYNC_PULSE    2
-`define VGA_V_BACK_PORCH    33
+`define VGA_HEIGHT          768
+`define VGA_V_FRONT_PORCH   3
+`define VGA_V_SYNC_PULSE    6
+`define VGA_V_BACK_PORCH    29
 `define VGA_V_TOTAL         (`VGA_HEIGHT + `VGA_V_FRONT_PORCH + \
                              `VGA_V_SYNC_PULSE + `VGA_V_BACK_PORCH)
 

@@ -85,12 +85,14 @@ module consolite
    wire        c3_p0_rd_error;
 
    // Main memory port 2 (read) for VGA buffer
+   wire        c3_p2_cmd_clk;
    wire        c3_p2_cmd_en;
    wire [2:0]  c3_p2_cmd_instr;
    wire [5:0]  c3_p2_cmd_bl; // bl = burst length
    wire [29:0] c3_p2_cmd_byte_addr;
    wire        c3_p2_cmd_empty;
    wire        c3_p2_cmd_full;
+   wire        c3_p2_rd_clk;
    wire        c3_p2_rd_en;
    wire [31:0] c3_p2_rd_data;
    wire        c3_p2_rd_full;
@@ -213,12 +215,14 @@ module consolite
       .hsync(hsync),
       .vsync(vsync),
       .rgb(rgb),
+      .mem_cmd_clk(c3_p2_cmd_clk),
       .mem_cmd_en(c3_p2_cmd_en),
       .mem_cmd_instr(c3_p2_cmd_instr),
       .mem_cmd_bl(c3_p2_cmd_bl),
       .mem_cmd_byte_addr(c3_p2_cmd_byte_addr),
       .mem_cmd_empty(c3_p2_cmd_empty),
       .mem_cmd_full(c3_p2_cmd_full),
+      .mem_rd_clk(c3_p2_rd_clk),
       .mem_rd_en(c3_p2_rd_en),
       .mem_rd_data(c3_p2_rd_data),
       .mem_rd_full(c3_p2_rd_full),
@@ -422,14 +426,14 @@ module consolite
       .c3_p0_rd_error(c3_p0_rd_error),
 
       // Main memory port 2 (VGA buffer, read only)
-      .c3_p2_cmd_clk(clk),
+      .c3_p2_cmd_clk(c3_p2_cmd_clk),
       .c3_p2_cmd_en(c3_p2_cmd_en),
       .c3_p2_cmd_instr(c3_p2_cmd_instr),
       .c3_p2_cmd_bl(c3_p2_cmd_bl),
       .c3_p2_cmd_byte_addr(c3_p2_cmd_byte_addr),
       .c3_p2_cmd_empty(c3_p2_cmd_empty),
       .c3_p2_cmd_full(c3_p2_cmd_full),
-      .c3_p2_rd_clk(clk),
+      .c3_p2_rd_clk(c3_p2_rd_clk),
       .c3_p2_rd_en(c3_p2_rd_en),
       .c3_p2_rd_data(c3_p2_rd_data),
       .c3_p2_rd_full(c3_p2_rd_full),

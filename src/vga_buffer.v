@@ -34,7 +34,8 @@
 
 module vga_buffer
   (
-   input         clk,
+   input         clk,      // 65 MHz pixel clock
+   input         clk_fast, // 100 MHz master clock
    input         calib_done,
    input [7:0]   x_coord,
    input [7:0]   y_coord,
@@ -79,7 +80,8 @@ module vga_buffer
    reg [31:0]  write_data = 0;
    vga_block_ram vga_block_ram_
      (
-      .clk(clk),
+      .wr_clk(clk),
+      .rd_clk(clk_fast),
       // Write signals
       .wr_en(write_en),
       .wr_addr(write_addr),

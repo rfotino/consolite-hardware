@@ -1,7 +1,7 @@
 /**
- * A VGA display controller for a 640x480 resolution @ 60Hz.
+ * A VGA display controller for a 1024x768 resolution @ 60Hz.
  * The clk is assumed to be 100MHz. For more information on timing
- * see http://tinyvga.com/vga-timing/640x480@60Hz.
+ * see http://tinyvga.com/vga-timing/1024x768@60Hz.
  *
  * Author: Robert Fotino, 2016
  */
@@ -16,12 +16,14 @@ module vga_display
    output           vsync,
    output reg [7:0] rgb,
    // Main memory control signals
+   output           mem_cmd_clk,
    output           mem_cmd_en,
    output [2:0]     mem_cmd_instr,
    output [5:0]     mem_cmd_bl,
    output [29:0]    mem_cmd_byte_addr,
    input            mem_cmd_empty,
    input            mem_cmd_full,
+   output           mem_rd_clk,
    output           mem_rd_en,
    input [31:0]     mem_rd_data,
    input            mem_rd_full,
@@ -30,6 +32,34 @@ module vga_display
    input            mem_rd_overflow,
    input            mem_rd_error
    );
+
+   // Create a 65 MHz pixel clock from the 100 MHz master clock.
+   // We register clk using clkin to shorten the critical path.
+   // As a side effect clkin is divided by 2, so we multiply by
+   // 26 and divide by 20 to get a frequency of (50 MHz) * (26/20)
+   // = 65 MHz for pixel_clk
+   reg clkin = 0;
+   always @ (posedge clk) begin
+      clkin <= ~clkin;
+   end
+   wire pixel_clk;
+   DCM_SP
+    #(
+      .CLKIN_PERIOD(20),
+      .CLKFX_MULTIPLY(26),
+      .CLKFX_DIVIDE(20),
+      .STARTUP_WAIT("TRUE")
+      )
+     pixel_clk_multiplier
+     (
+      .CLKIN(clkin),
+      .RST(0),
+      .CLKFX(pixel_clk)
+      );
+
+   // Use the 65 MHz pixel clock to communicate with RAM
+   assign mem_cmd_clk = pixel_clk;
+   assign mem_rd_clk = pixel_clk;
 
    // The x and y coordinates of the 256x192 screen, and
    // other signals for communicating with the VGA buffer
@@ -41,7 +71,8 @@ module vga_display
    // Instantiate a VGA buffer and get the byte to display from there.
    vga_buffer vga_buffer_
      (
-      .clk(clk),
+      .clk(pixel_clk), // 65 MHz
+      .clk_fast(clk),  // 100 MHz
       .calib_done(calib_done),
       .x_coord(x_coord),
       .y_coord(y_coord),
@@ -62,27 +93,15 @@ module vga_display
       .mem_rd_error(mem_rd_error)
       );
 
-   // Divide the clock into 25MHz. Pixel clock for 640x480 VGA
-   // should be 25.175MHz but we can't clock divide that from 100MHz.
-   reg [1:0]        counter = 0;
-   wire             pixel_clk = counter[1];
-   always @ (posedge clk) begin
-      if (calib_done) begin
-         counter <= counter + 1;
-      end
-   end
-
    // Counter for VGA (x, y) coords
-   reg [9:0] counter_x = 0;
-   reg [9:0] counter_y = 0;
+   reg [$clog2(`VGA_H_TOTAL)-1:0] counter_x = 0;
+   reg [$clog2(`VGA_V_TOTAL)-1:0] counter_y = 0;
    // The number of times the screen (x, y) coord has been displayed
    reg [1:0] counter_x_coord = 0;
    reg [1:0] counter_y_coord = 0;
-   // The width and heights of the current screen (x, y) coord. Alternates
-   // between 2 and 3 (0-based) because the ratio of VGA coords to screen
-   // coords is 2.5
-   reg [1:0] counter_x_coord_max = 2;
-   reg [1:0] counter_y_coord_max = 2;
+   // Each screen coord is a 4x4 block of VGA pixels
+   localparam [1:0] counter_x_coord_max = 3;
+   localparam [1:0] counter_y_coord_max = 3;
    assign hsync = ~(`VGA_WIDTH + `VGA_H_FRONT_PORCH <= counter_x &&
                     counter_x < `VGA_WIDTH + `VGA_H_FRONT_PORCH + `VGA_H_SYNC_PULSE);
    assign vsync = ~(`VGA_HEIGHT + `VGA_V_FRONT_PORCH <= counter_y &&
@@ -94,11 +113,6 @@ module vga_display
          if (counter_x_coord == counter_x_coord_max) begin
             x_coord <= x_coord + 1;
             counter_x_coord <= 0;
-            if (x_coord[0]) begin
-               counter_x_coord_max <= 2; // x-coord is odd
-            end else begin
-               counter_x_coord_max <= 1; // x-coord is even
-            end
          end else begin
             counter_x_coord <= counter_x_coord + 1;
          end
@@ -107,11 +121,6 @@ module vga_display
             if (counter_y_coord == counter_y_coord_max) begin
                y_coord <= y_coord + 1;
                counter_y_coord <= 0;
-               if (y_coord[0]) begin
-                  counter_y_coord_max <= 2; // y-coord is odd
-               end else begin
-                  counter_y_coord_max <= 1; // y-coord is even
-               end
             end else begin
                counter_y_coord <= counter_y_coord + 1;
             end
@@ -141,7 +150,6 @@ module vga_display
    // if this is the last line of pixels we're using them for
    always @ (*) begin
       buf_invalidate =
-         (counter == 0) && // Only go high for one clock cycle
          (counter_x_coord == counter_x_coord_max) &&
          (counter_y_coord == counter_y_coord_max);
    end

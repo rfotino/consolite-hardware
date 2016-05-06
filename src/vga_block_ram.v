@@ -10,10 +10,11 @@
  */
 module vga_block_ram
   (
-   input        clk,
+   input        wr_clk,
    input        wr_en,
    input [5:0]  wr_addr,
    input [31:0] wr_data,
+   input        rd_clk,
    input [7:0]  rd_addr,
    output [7:0] rd_data
    );
@@ -40,13 +41,13 @@ module vga_block_ram
       .DO(DO),
       .DI(wr_data),
       .RDADDR({ 2'b0, rd_addr[7:2] }),
-      .RDCLK(clk),
+      .RDCLK(rd_clk),
       .RDEN(1'b1),
       .REGCE(REGCE),
       .RST(1'b0),
       .WE(4'b1111),
       .WRADDR({ 2'b0, wr_addr }),
-      .WRCLK(clk),
+      .WRCLK(wr_clk),
       .WREN(wr_en)
       );
 
