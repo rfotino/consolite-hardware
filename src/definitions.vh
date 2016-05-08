@@ -41,8 +41,9 @@
 `define GRAPHICS_MEM_PREFIX 14'b1
 
 // The number of inputs that user code can access.
-// There are 6 buttons, 8 switches, and 32 GPIOs
-`define NUM_USER_INPUTS     46
+// There are 6 buttons, 8 switches, 32 GPIOs, and
+// 8 12-button SNES controllers
+`define NUM_USER_INPUTS     142
  
 // States for the 7-seg display
 `define STATE_MEM_UNCALIB   12'h500

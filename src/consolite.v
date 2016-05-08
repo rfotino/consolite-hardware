@@ -22,10 +22,10 @@ module consolite
    // User inputs
    input [5:0]   buttons,
    input [7:0]   switches,
-   input [7:0]   gpio_p6,
-   input [7:0]   gpio_p7,
-   input [7:0]   gpio_p8,
-   input [7:0]   gpio_p9,
+   inout [7:0]   gpio_p6,
+   inout [7:0]   gpio_p7,
+   inout [7:0]   gpio_p8,
+   inout [7:0]   gpio_p9,
    // Micro SD card inputs and outputs
    //output        sdcard_cs,
    //output        sdcard_sclk,
@@ -148,8 +148,88 @@ module consolite
    wire        c3_p5_wr_underrun;
    wire        c3_p5_wr_error;
 
+   // Handle SNES controller input from GPIO ports (4 controllers)
+   localparam SNES_SERIAL_IN_1  = 4;
+   localparam SNES_DATA_CLK_1   = 2;
+   localparam SNES_DATA_LATCH_1 = 0;
+   localparam SNES_SERIAL_IN_2  = 5;
+   localparam SNES_DATA_CLK_2   = 3;
+   localparam SNES_DATA_LATCH_2 = 1;
+   wire [11:0] snes_0;
+   wire [11:0] snes_1;
+   wire [11:0] snes_2;
+   wire [11:0] snes_3;
+   wire [11:0] snes_4;
+   wire [11:0] snes_5;
+   wire [11:0] snes_6;
+   wire [11:0] snes_7;
+   snes_controller snes_controller_0
+     (
+      .clk(clk),
+      .serial_in(gpio_p6[SNES_SERIAL_IN_1]),
+      .data_clk(gpio_p6[SNES_DATA_CLK_1]),
+      .data_latch(gpio_p6[SNES_DATA_LATCH_1]),
+      .button_state(snes_0)
+      );
+   snes_controller snes_controller_1
+     (
+      .clk(clk),
+      .serial_in(gpio_p7[SNES_SERIAL_IN_1]),
+      .data_clk(gpio_p7[SNES_DATA_CLK_1]),
+      .data_latch(gpio_p7[SNES_DATA_LATCH_1]),
+      .button_state(snes_1)
+      );
+   snes_controller snes_controller_2
+     (
+      .clk(clk),
+      .serial_in(gpio_p8[SNES_SERIAL_IN_1]),
+      .data_clk(gpio_p8[SNES_DATA_CLK_1]),
+      .data_latch(gpio_p8[SNES_DATA_LATCH_1]),
+      .button_state(snes_2)
+      );
+   snes_controller snes_controller_3
+     (
+      .clk(clk),
+      .serial_in(gpio_p9[SNES_SERIAL_IN_1]),
+      .data_clk(gpio_p9[SNES_DATA_CLK_1]),
+      .data_latch(gpio_p9[SNES_DATA_LATCH_1]),
+      .button_state(snes_3)
+      );
+   snes_controller snes_controller_4
+     (
+      .clk(clk),
+      .serial_in(gpio_p6[SNES_SERIAL_IN_2]),
+      .data_clk(gpio_p6[SNES_DATA_CLK_2]),
+      .data_latch(gpio_p6[SNES_DATA_LATCH_2]),
+      .button_state(snes_4)
+      );
+   snes_controller snes_controller_5
+     (
+      .clk(clk),
+      .serial_in(gpio_p7[SNES_SERIAL_IN_2]),
+      .data_clk(gpio_p7[SNES_DATA_CLK_2]),
+      .data_latch(gpio_p7[SNES_DATA_LATCH_2]),
+      .button_state(snes_5)
+      );
+   snes_controller snes_controller_6
+     (
+      .clk(clk),
+      .serial_in(gpio_p8[SNES_SERIAL_IN_2]),
+      .data_clk(gpio_p8[SNES_DATA_CLK_2]),
+      .data_latch(gpio_p8[SNES_DATA_LATCH_2]),
+      .button_state(snes_6)
+      );
+   snes_controller snes_controller_7
+     (
+      .clk(clk),
+      .serial_in(gpio_p9[SNES_SERIAL_IN_2]),
+      .data_clk(gpio_p9[SNES_DATA_CLK_2]),
+      .data_latch(gpio_p9[SNES_DATA_LATCH_2]),
+      .button_state(snes_7)
+      );
+
    // Buffers the input for INPUT instructions
-   wire [45:0] buf_inputs;
+   wire [`NUM_USER_INPUTS-1:0] buf_inputs;
    input_handler input_handler_
      (
       .clk(clk),
@@ -159,6 +239,14 @@ module consolite
       .gpio_p7(gpio_p7),
       .gpio_p8(gpio_p8),
       .gpio_p9(gpio_p9),
+      .snes_0(snes_0),
+      .snes_1(snes_1),
+      .snes_2(snes_2),
+      .snes_3(snes_3),
+      .snes_4(snes_4),
+      .snes_5(snes_5),
+      .snes_6(snes_6),
+      .snes_7(snes_7),
       .buf_inputs(buf_inputs)
       );
 
@@ -173,6 +261,7 @@ module consolite
       .ms_time(ms_time)
       );
 
+   // A 16-bit random number generator
    wire [`WORD_BITS-1:0] rnd;
    galois_lfsr rng
      (
