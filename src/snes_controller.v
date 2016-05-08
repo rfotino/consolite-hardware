@@ -81,6 +81,11 @@ module snes_controller
            if ((COUNTER_12US_MAX / 2) - 1 == counter_12us) begin
               if (data_counter < 12) begin
                  buf_button_state <= { ~serial_in, buf_button_state[11:1] };
+              end else if (~serial_in) begin
+                 // The serial input is always high for the last 4 pulses
+                 // that aren't mapped to any of the 12 buttons. If the serial
+                 // input is low, the controller isn't connected so we default low
+                 buf_button_state <= 0;
               end
               if (15 == data_counter) begin
                  data_counter <= 0;
