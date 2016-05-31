@@ -27,10 +27,10 @@ module consolite
    inout [7:0]   gpio_p8,
    inout [7:0]   gpio_p9,
    // Micro SD card inputs and outputs
-   //output        sdcard_cs,
-   //output        sdcard_sclk,
-   //output        sdcard_mosi,
-   //input         sdcard_miso,
+   output        sdcard_cs,
+   output        sdcard_sclk,
+   output        sdcard_mosi,
+   input         sdcard_miso,
    // UART inputs and outputs
    input         uart_rx,
    // LPDDR RAM inputs and outputs
@@ -56,7 +56,8 @@ module consolite
    // Some functions can't be started until we have booted
    wire clear_screen_done;
    wire uart_load_done;
-   wire boot_done = mcb3_calib_done & clear_screen_done & uart_load_done;
+   wire sdcard_read_done;
+   wire boot_done = mcb3_calib_done & clear_screen_done & (uart_load_done | sdcard_read_done);
 
    // Main memory port 0 (read/write) for data cache
    wire        c3_p0_cmd_clk;
@@ -83,6 +84,24 @@ module consolite
    wire [6:0]  c3_p0_rd_count;
    wire        c3_p0_rd_overflow;
    wire        c3_p0_rd_error;
+
+   // Main memory port 1 (read/write) for sdcard reader
+   wire        c3_p1_cmd_clk;
+   wire        c3_p1_cmd_en;
+   wire [2:0]  c3_p1_cmd_instr;
+   wire [5:0]  c3_p1_cmd_bl;
+   wire [29:0] c3_p1_cmd_byte_addr;
+   wire        c3_p1_cmd_empty;
+   wire        c3_p1_cmd_full;
+   wire        c3_p1_wr_clk;
+   wire        c3_p1_wr_en;
+   wire [3:0]  c3_p1_wr_mask;
+   wire [31:0] c3_p1_wr_data;
+   wire        c3_p1_wr_full;
+   wire        c3_p1_wr_empty;
+   wire [6:0]  c3_p1_wr_count;
+   wire        c3_p1_wr_underrun;
+   wire        c3_p1_wr_error;
 
    // Main memory port 2 (read) for VGA buffer
    wire        c3_p2_cmd_clk;
@@ -274,13 +293,17 @@ module consolite
    // Determines the digits for the 7-segment display,
    // based on status/error conditions
    wire [7:0]     uart_progress;
+   wire [7:0]     sdcard_progress;
+   wire           sdcard_error;
    wire [11:0]    processor_status;
    wire [11:0]    seg_digits;
+   wire [11:0]    sdc_status; // DEBUG ONLY
    seg_status seg_status_
      (
       .mem_calib_done(mcb3_calib_done),
       .mem_error(mcb3_error),
       .clear_screen_done(clear_screen_done),
+      .sdcard_error(sdcard_error),
       .uart_load_done(uart_load_done),
       .uart_progress(uart_progress),
       .processor_status(processor_status),
@@ -291,7 +314,7 @@ module consolite
    seg_display seg_display_
      (
       .clk(clk),
-      .digits(seg_digits),
+      .digits(sdc_status),
       .seven_seg(seven_seg),
       .seven_seg_en(seven_seg_en)
       );
@@ -376,6 +399,36 @@ module consolite
       .mem_wr_count(c3_p5_wr_count),
       .mem_wr_underrun(c3_p5_wr_underrun),
       .mem_wr_error(c3_p5_wr_error)
+      );
+
+   // SD card reader, reads the first 64KiB off of the MicroSD
+   // card and writes it to RAM for the processor to execute
+   sdcard_reader sdcard_reader_
+     (
+      .sdc_status(sdc_status), // DEBUG ONLY
+      .clk(clk),
+      .calib_done(mcb3_calib_done),
+      .done(sdcard_read_done),
+      .progress(sdcard_progress),
+      .error(sdcard_error),
+      .sdcard_cs(sdcard_cs),
+      .sdcard_sclk(sdcard_sclk),
+      .sdcard_mosi(sdcard_mosi),
+      .sdcard_miso(sdcard_miso),
+      .mem_cmd_en(c3_p1_cmd_en),
+      .mem_cmd_instr(c3_p1_cmd_instr),
+      .mem_cmd_bl(c3_p1_cmd_bl),
+      .mem_cmd_byte_addr(c3_p1_cmd_byte_addr),
+      .mem_cmd_empty(c3_p1_cmd_empty),
+      .mem_cmd_full(c3_p1_cmd_full),
+      .mem_wr_en(c3_p1_wr_en),
+      .mem_wr_mask(c3_p1_wr_mask),
+      .mem_wr_data(c3_p1_wr_data),
+      .mem_wr_full(c3_p1_wr_full),
+      .mem_wr_empty(c3_p1_wr_empty),
+      .mem_wr_count(c3_p1_wr_count),
+      .mem_wr_underrun(c3_p1_wr_underrun),
+      .mem_wr_error(c3_p1_wr_error)
       );
 
    // Data cache, handles loads and stores to and from
@@ -513,6 +566,33 @@ module consolite
       .c3_p0_rd_count(c3_p0_rd_count),
       .c3_p0_rd_overflow(c3_p0_rd_overflow),
       .c3_p0_rd_error(c3_p0_rd_error),
+
+      // Main memory port 1 (sdcard, read/write)
+      .c3_p1_cmd_clk(clk),
+      .c3_p1_cmd_en(c3_p1_cmd_en),
+      .c3_p1_cmd_instr(c3_p1_cmd_instr),
+      .c3_p1_cmd_bl(c3_p1_cmd_bl),
+      .c3_p1_cmd_byte_addr(c3_p1_cmd_byte_addr),
+      .c3_p1_cmd_empty(c3_p1_cmd_empty),
+      .c3_p1_cmd_full(c3_p1_cmd_full),
+      .c3_p1_wr_clk(clk),
+      .c3_p1_wr_en(c3_p1_wr_en),
+      .c3_p1_wr_mask(c3_p1_wr_mask),
+      .c3_p1_wr_data(c3_p1_wr_data),
+      .c3_p1_wr_full(c3_p1_wr_full),
+      .c3_p1_wr_empty(c3_p1_wr_empty),
+      .c3_p1_wr_count(c3_p1_wr_count),
+      .c3_p1_wr_underrun(c3_p1_wr_underrun),
+      .c3_p1_wr_error(c3_p1_wr_error),
+      // We don't need any of the read ports
+      .c3_p1_rd_clk(),
+      .c3_p1_rd_en(1'b0),
+      .c3_p1_rd_data(),
+      .c3_p1_rd_full(),
+      .c3_p1_rd_empty(),
+      .c3_p1_rd_count(),
+      .c3_p1_rd_overflow(),
+      .c3_p1_rd_error(),
 
       // Main memory port 2 (VGA buffer, read only)
       .c3_p2_cmd_clk(c3_p2_cmd_clk),

@@ -1,9 +1,14 @@
 /**
- * A module for reading the first 64 Kib off of the micro
- * SD card and writing it to RAM where it can be executed.
+ * A module for reading the first 64 Kib off of the micro SD card
+ * using an SPI flash interface and writing it to RAM where it can
+ * be executed.
  *
  * For more information, see:
  * http://elm-chan.org/docs/mmc/mmc_e.html
+ * http://elm-chan.org/docs/spi_e.html
+ * http://elm-chan.org/docs/mmc/gfx1/sdinit.png
+ * http://www.dejazzer.com/ee379/lecture_notes/lec12_sd_card.pdf
+ * https://learn.sparkfun.com/tutorials/serial-peripheral-interface-spi
  *
  * @author Robert Fotino, 2016
  */
@@ -12,23 +17,26 @@
 
 module sdcard_reader
   (
+   output reg [11:0] sdc_status, // DEBUG ONLY
    input             clk,
    input             calib_done,
-   output reg        sdcard_read_done,
+   output reg        done,
+   output reg [7:0]  progress,
+   output reg        error,
    // Signals for communicating with SD card
    output reg        sdcard_cs,
    output reg        sdcard_sclk,
-   output reg        sdcard_mosi,
+   output            sdcard_mosi,
    input             sdcard_miso,
    // Signals for writing to RAM
    output reg        mem_cmd_en,
-   output wire [2:0] mem_cmd_instr,
-   output reg [5:0]  mem_cmd_bl,
+   output [2:0]      mem_cmd_instr,
+   output [5:0]      mem_cmd_bl,
    output reg [29:0] mem_cmd_byte_addr,
    input             mem_cmd_empty,
    input             mem_cmd_full,
    output reg        mem_wr_en,
-   output reg [3:0]  mem_wr_mask,
+   output [3:0]      mem_wr_mask,
    output reg [31:0] mem_wr_data,
    input             mem_wr_full,
    input             mem_wr_empty,
@@ -37,16 +45,190 @@ module sdcard_reader
    input             mem_wr_error
    );
 
+   // Give outputs their initial values
    initial begin
+      sdc_status = 12'h000;
+      done = 0;
+      progress = 0;
+      error = 0;
+      sdcard_cs = 1;
+      sdcard_sclk = 1;
       mem_cmd_en = 0;
       mem_wr_en = 0;
-      sdcard_cs = 0;
-      sdcard_sclk = 0;
-      sdcard_mosi = 0;
-      sdcard_read_done = 1;
    end
 
-   // Always write
+   // Our interface with RAM is write-only, so always give the
+   // write command (000)
    assign mem_cmd_instr = 3'b000;
+   // We always want to write 256-byte blocks to RAM, so always
+   // use a burst length of 64 32-bit chunks
+   assign mem_cmd_bl = 6'b111111;
+   // We also always want to write 32-bit chunks, so don't mask
+   // any bytes
+   assign mem_wr_mask = 4'b0000;
+
+   // Divide the clock that we send to the SD card
+   reg [8:0] sclk_counter = 0;
+   reg [8:0] sclk_div = 250; // Default to 400 kHz
+   reg       sclk_reset = 0;
+   reg       sclk_posedge = 0;
+   reg       sclk_negedge = 0;
+   always @ (posedge clk) begin
+      sclk_posedge <= 0;
+      sclk_negedge <= 0;
+      if (sclk_reset || sclk_div - 1 == sclk_counter) begin
+         sclk_counter <= 0;
+         if (sdcard_sclk) begin
+            sclk_negedge <= 1;
+         end
+         sdcard_sclk <= 0;
+      end else begin
+         sclk_counter <= sclk_counter + 1;
+         // At the halfway point, switch the serial clock to 1
+         if ((sclk_div >> 1) - 1 == sclk_counter) begin
+            sclk_posedge <= 1;
+            sdcard_sclk <= 1;
+         end
+      end
+   end
+
+   // Count whether 1.5 milliseconds have passed before
+   // establishing communication with the SD card
+   localparam                          POWER_COUNTER_MAX = 150000;
+   reg                                 power_on_done = 0;
+   reg [$clog2(POWER_COUNTER_MAX)-1:0] power_on_counter = 0;
+   always @ (posedge clk) begin
+      if (power_on_counter == POWER_COUNTER_MAX - 1) begin
+         power_on_done <= 1;
+      end else begin
+         power_on_counter <= power_on_counter + 1;
+      end
+   end
+
+   // Controls for sending 6-byte SPI commands to SD card
+   localparam          CMD_BITS = 48;
+   reg                 spi_cmd_send_reset = 0;
+   reg                 spi_cmd_send_en = 0;
+   reg [5:0]           spi_cmd_send_index = 0;
+   reg [31:0]          spi_cmd_send_arg = 0;
+   reg [6:0]           spi_cmd_send_crc = 0;
+   wire [CMD_BITS-1:0] spi_cmd_send_data = {
+      2'b01, spi_cmd_send_index,
+      spi_cmd_send_arg, spi_cmd_send_crc, 1'b1
+   };
+   wire                spi_cmd_send_done;
+   spi_sender #(.DATA_BITS(CMD_BITS)) spi_cmd_sender_
+     (
+      .clk(clk),
+      .sclk_posedge(sclk_posedge),
+      .sclk_negedge(sclk_negedge),
+      .reset(spi_cmd_send_reset),
+      .en(spi_cmd_send_en),
+      .data(spi_cmd_send_data),
+      .out(sdcard_mosi),
+      .done(spi_cmd_send_done)
+      );
+
+   // Controls for receiving 8-bit R1 responses from SD card
+   localparam         R1_BITS = 8;
+   reg                spi_r1_recv_reset = 0;
+   reg                spi_r1_recv_en = 0;
+   wire [R1_BITS-1:0] spi_r1_recv_out;
+   wire               spi_r1_recv_done;
+   spi_receiver #(.DATA_BITS(R1_BITS)) spi_r1_receiver_
+     (
+      .clk(clk),
+      .sclk_posedge(sclk_posedge),
+      .sclk_negedge(sclk_negedge),
+      .reset(spi_r1_recv_reset),
+      .en(spi_r1_recv_en),
+      .in(sdcard_miso),
+      .out(spi_r1_recv_out),
+      .done(spi_r1_recv_done)
+      );
+
+   // State machine logic for communicating with the SD card
+   localparam STATE_POWER_ON  = 0;
+   localparam STATE_DUMMY_CLK = 1;
+   localparam STATE_CMD0_SEND = 2;
+   localparam STATE_CMD0_WAIT = 3;
+   localparam STATE_CMD0_RECV = 4;
+   localparam STATE_DONE      = 254;
+   localparam STATE_ERROR     = 255;
+   reg [7:0] state = STATE_POWER_ON;
+   reg [7:0] dummy_clk_counter = 0;
+   always @ (posedge clk) begin
+      sclk_reset <= 0;
+      spi_cmd_send_en <= 0;
+      spi_cmd_send_reset <= 0;
+      spi_r1_recv_en <= 0;
+      spi_r1_recv_reset <= 0;
+      sdc_status <= { 2'b0, power_on_done, sdcard_miso, state };
+      case (state)
+         // Wait >= 1 millisecond, then send dummy clock
+         STATE_POWER_ON: begin
+            sclk_reset <= 1;
+            sdcard_cs <= 1;
+            if (power_on_done) begin
+               state <= STATE_DUMMY_CLK;
+            end
+         end
+         // Send >= 74 pulses with clock between 100kHz and 400kHz. The card
+         // is ready to receive a command when it drives the MISO signal high
+         STATE_DUMMY_CLK: begin
+            sdcard_cs <= 1;
+            if (sdcard_miso && sclk_negedge && 74 <= dummy_clk_counter) begin
+               state <= STATE_CMD0_SEND;
+            end else if (sclk_posedge) begin
+               dummy_clk_counter <= dummy_clk_counter + 1;
+            end
+         end
+         // Set up the sender module to send CMD0
+         STATE_CMD0_SEND: begin
+            // Change to 20 MHz clock - temporarily disabled
+            //clk_div <= 5;
+            // If CS is low for CMD0 we go into SPI mode
+            sdcard_cs <= 0;
+            // Setup command packet
+            spi_cmd_send_index <= 6'd0;
+            spi_cmd_send_arg <= 32'h00000000;
+            spi_cmd_send_crc <= 7'b1001010; // hardcoded CRC for CMD0
+            // Enable sending of command
+            spi_cmd_send_en <= 1;
+            state <= STATE_CMD0_WAIT;
+         end
+         // Wait for CMD0 to be sent
+         STATE_CMD0_WAIT: begin
+            if (spi_cmd_send_done) begin
+               spi_r1_recv_en <= 1;
+               state <= STATE_CMD0_RECV;
+            end
+         end
+         // Wait for response from CMD0
+         STATE_CMD0_RECV: begin
+            if (spi_r1_recv_done) begin
+               // Check that the response is valid
+               if (8'b00000001 == spi_r1_recv_out) begin
+                  state <= STATE_DONE;
+               end else begin
+                  state <= STATE_ERROR;
+               end
+            end
+         end
+         // Done reading from the card
+         STATE_DONE: begin
+            sdc_status <= { 4'hf, spi_r1_recv_out };
+            sclk_reset <= 1;
+            sdcard_cs <= 1;
+            done <= 1;
+         end
+         // There was an error reading from the SD card
+         STATE_ERROR: begin
+            sclk_reset <= 1;
+            sdcard_cs <= 1;
+            error <= 1;
+         end
+      endcase
+   end
 
 endmodule

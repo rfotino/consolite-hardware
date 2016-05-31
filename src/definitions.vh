@@ -51,6 +51,7 @@
 `define STATE_CLEAR_SCREEN  12'h502
 `define STATE_UART_LOAD     12'h600
 `define STATE_INVALID_INSTR 12'h700
+`define STATE_SDCARD_ERROR  12'h800
 `define STATE_DEFAULT       12'h100
 
 // Stack pointer
