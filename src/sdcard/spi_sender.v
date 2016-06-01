@@ -42,6 +42,7 @@ module spi_sender
          out = 1;
       end else begin
          case (state)
+            // Wait here until we get the enabled signal
             STATE_IDLE: begin
                out = 1;
                if (en) begin
@@ -50,11 +51,15 @@ module spi_sender
                   saved_data <= data;
                end
             end
+            // Wait until we are sending the MSB of the next byte
             STATE_SYNC: begin
+               out = 1;
                if (7 == bit_counter) begin
                   state <= STATE_ENABLED;
                end
             end
+            // Serialize bits onto the output wire, shifting to the
+            // next one on the falling clock edge
             STATE_ENABLED: begin
                out = saved_data[out_index];
                if (out_index == 0) begin
