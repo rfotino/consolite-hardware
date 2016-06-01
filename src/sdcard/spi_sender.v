@@ -19,10 +19,20 @@ module spi_sender
 
    parameter DATA_BITS = 48;
 
+   // Keep track of which bit we are on, so that we always
+   // start at bit 7 for synchonous byte-oriented communication
+   reg [2:0] bit_counter = 7;
+   always @ (posedge clk) begin
+      if (sclk_negedge) begin
+         bit_counter <= bit_counter - 1;
+      end
+   end
+
    // State machine logic
    localparam STATE_IDLE    = 0;
-   localparam STATE_ENABLED = 1;
-   reg                         state = STATE_IDLE;
+   localparam STATE_SYNC    = 1;
+   localparam STATE_ENABLED = 2;
+   reg [1:0]                   state = STATE_IDLE;
    reg [$clog2(DATA_BITS)-1:0] out_index = DATA_BITS - 1;
    reg [DATA_BITS-1:0]         saved_data = 0;
    assign done = (STATE_IDLE == state) && !en;
@@ -35,9 +45,14 @@ module spi_sender
             STATE_IDLE: begin
                out = 1;
                if (en) begin
-                  state <= STATE_ENABLED;
+                  state <= STATE_SYNC;
                   out_index <= DATA_BITS - 1;
                   saved_data <= data;
+               end
+            end
+            STATE_SYNC: begin
+               if (7 == bit_counter) begin
+                  state <= STATE_ENABLED;
                end
             end
             STATE_ENABLED: begin

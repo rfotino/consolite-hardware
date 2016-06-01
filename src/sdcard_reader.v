@@ -147,23 +147,58 @@ module sdcard_reader
       .done(spi_r1_recv_done)
       );
 
+   // Controls for receiving 40-bit R3/R7 responses from SD card
+   // (R1 followed by 32 bits of data)
+   localparam            R3_R7_BITS = 40;
+   reg                   spi_r3_r7_recv_reset = 0;
+   reg                   spi_r3_r7_recv_en = 0;
+   wire [R3_R7_BITS-1:0] spi_r3_r7_recv_out;
+   wire                  spi_r3_r7_recv_done;
+   spi_receiver #(.DATA_BITS(R3_R7_BITS)) spi_r3_r7_receiver_
+     (
+      .clk(clk),
+      .sclk_posedge(sclk_posedge),
+      .sclk_negedge(sclk_negedge),
+      .reset(spi_r3_r7_recv_reset),
+      .en(spi_r3_r7_recv_en),
+      .in(sdcard_miso),
+      .out(spi_r3_r7_recv_out),
+      .done(spi_r3_r7_recv_done)
+      );
+
    // State machine logic for communicating with the SD card
-   localparam STATE_POWER_ON  = 0;
-   localparam STATE_DUMMY_CLK = 1;
-   localparam STATE_CMD0_SEND = 2;
-   localparam STATE_CMD0_WAIT = 3;
-   localparam STATE_CMD0_RECV = 4;
-   localparam STATE_DONE      = 254;
-   localparam STATE_ERROR     = 255;
+   localparam STATE_POWER_ON    = 0;
+   localparam STATE_DUMMY_CLK   = 1;
+   localparam STATE_0xFF_WAIT   = 2;
+   localparam STATE_R1_SEND     = 3;
+   localparam STATE_R3_R7_SEND  = 4;
+   localparam STATE_CMD0_SEND   = 5;
+   localparam STATE_CMD0_RECV   = 6;
+   localparam STATE_CMD8_SEND   = 7;
+   localparam STATE_CMD8_RECV   = 8;
+   localparam STATE_CMD55_SEND  = 9;
+   localparam STATE_CMD55_RECV  = 10;
+   localparam STATE_ACMD41_SEND = 11;
+   localparam STATE_ACMD41_RECV = 12;
+   localparam STATE_CMD58_SEND  = 13;
+   localparam STATE_CMD58_RECV  = 14;
+   localparam STATE_CALIB_WAIT  = 15;
+   localparam STATE_DONE        = 254;
+   localparam STATE_ERROR       = 255;
    reg [7:0] state = STATE_POWER_ON;
+   reg [7:0] next_state;
    reg [7:0] dummy_clk_counter = 0;
+   reg [7:0] miso_ready_counter = 0;
+   reg [7:0] timeout_counter = 0;
    always @ (posedge clk) begin
       sclk_reset <= 0;
       spi_cmd_send_en <= 0;
       spi_cmd_send_reset <= 0;
       spi_r1_recv_en <= 0;
       spi_r1_recv_reset <= 0;
-      sdc_status <= { 2'b0, power_on_done, sdcard_miso, state };
+      spi_r3_r7_recv_en <= 0;
+      spi_r3_r7_recv_reset <= 0;
+      sdc_status <= { sdc_status[11:10], power_on_done, sdcard_miso, state }; // DEBUG ONLY
       case (state)
          // Wait >= 1 millisecond, then send dummy clock
          STATE_POWER_ON: begin
@@ -183,6 +218,35 @@ module sdcard_reader
                dummy_clk_counter <= dummy_clk_counter + 1;
             end
          end
+         // Wait until we have seen 0xFF from the card's MISO
+         STATE_0xFF_WAIT: begin
+            if (sclk_posedge) begin
+               if (sdcard_miso) begin
+                  if (7 == miso_ready_counter) begin
+                     miso_ready_counter <= 0;
+                     state <= next_state;
+                  end else begin
+                     miso_ready_counter <= miso_ready_counter + 1;
+                  end
+               end else begin
+                  miso_ready_counter <= 0;
+               end
+            end
+         end
+         // Wait for a command with R1 response to be sent
+         STATE_R1_SEND: begin
+            if (spi_cmd_send_done) begin
+               spi_r1_recv_en <= 1;
+               state <= next_state;
+            end
+         end
+         // Wait for a command with R3/R7 response to be sent
+         STATE_R3_R7_SEND: begin
+            if (spi_cmd_send_done) begin
+               spi_r3_r7_recv_en <= 1;
+               state <= next_state;
+            end
+         end
          // Set up the sender module to send CMD0
          STATE_CMD0_SEND: begin
             // Change to 20 MHz clock - temporarily disabled
@@ -195,35 +259,129 @@ module sdcard_reader
             spi_cmd_send_crc <= 7'b1001010; // hardcoded CRC for CMD0
             // Enable sending of command
             spi_cmd_send_en <= 1;
-            state <= STATE_CMD0_WAIT;
+            state <= STATE_R1_SEND;
+            next_state <= STATE_CMD0_RECV;
          end
-         // Wait for CMD0 to be sent
-         STATE_CMD0_WAIT: begin
-            if (spi_cmd_send_done) begin
-               spi_r1_recv_en <= 1;
-               state <= STATE_CMD0_RECV;
-            end
-         end
-         // Wait for response from CMD0
+         // Wait for response from CMD0, then verify
          STATE_CMD0_RECV: begin
             if (spi_r1_recv_done) begin
                // Check that the response is valid
-               if (8'b00000001 == spi_r1_recv_out) begin
-                  state <= STATE_DONE;
+               if (8'b1 == spi_r1_recv_out) begin
+                  state <= STATE_0xFF_WAIT;
+                  next_state <= STATE_CMD8_SEND;
                end else begin
                   state <= STATE_ERROR;
                end
             end
          end
+         // Set up sender module to send CMD8
+         STATE_CMD8_SEND: begin
+            // Setup command packet
+            spi_cmd_send_index <= 6'd8;
+            spi_cmd_send_arg <= 32'h000001AA;
+            spi_cmd_send_crc <= 7'b1000011; // hardcoded CRC for CMD8
+            // Enable sending of command
+            spi_cmd_send_en <= 1;
+            state <= STATE_R3_R7_SEND;
+            next_state <= STATE_CMD8_RECV;
+         end
+         // Wait for response from CMD8, then verify that we
+         // are in the idle state with the voltage echoed back
+         // correctly
+         STATE_CMD8_RECV: begin
+            if (spi_r3_r7_recv_done) begin
+               if (40'h01000001AA == spi_r3_r7_recv_out) begin
+                  state <= STATE_0xFF_WAIT;
+                  next_state <= STATE_CMD55_SEND;
+               end else begin
+                  state <= STATE_ERROR;
+               end
+            end
+         end
+         // Set up sender module to send CMD55
+         STATE_CMD55_SEND: begin
+            spi_cmd_send_index <= 6'd55;
+            spi_cmd_send_arg <= 32'h00000000;
+            spi_cmd_send_crc <= 7'b0000000; // Shouldn't be checked
+            spi_cmd_send_en <= 1;
+            state <= STATE_R1_SEND;
+            next_state <= STATE_CMD55_RECV;
+         end
+         // Wait for response from CMD55 and check for errors
+         STATE_CMD55_RECV: begin
+            if (spi_r1_recv_done) begin
+               if (8'b1 == spi_r1_recv_out) begin
+                  state <= STATE_0xFF_WAIT;
+                  next_state <= STATE_ACMD41_SEND;
+               end else begin
+                  state <= STATE_ERROR;
+               end
+            end
+         end
+         // Set up sender module to send ACMD41
+         STATE_ACMD41_SEND: begin
+            spi_cmd_send_index <= 6'd41;
+            spi_cmd_send_arg <= 32'h40000000;
+            spi_cmd_send_crc <= 7'b0000000; // Shouldn't be checked
+            spi_cmd_send_en <= 1;
+            state <= STATE_R1_SEND;
+            next_state <= STATE_ACMD41_RECV;
+         end
+         // Wait for response from ACMD41, check for errors, and start
+         // back at CMD55 if still in idle state
+         STATE_ACMD41_RECV: begin
+            if (spi_r1_recv_done) begin
+               if (8'b1 == spi_r1_recv_out) begin
+                  state <= STATE_0xFF_WAIT;
+                  next_state <= STATE_CMD55_SEND;
+               end else if (8'b0 == spi_r1_recv_out) begin
+                  state <= STATE_0xFF_WAIT;
+                  next_state <= STATE_CMD58_SEND;
+               end else begin
+                  state <= STATE_ERROR;
+               end
+            end
+         end
+         // Set up sender module to send CMD58
+         STATE_CMD58_SEND: begin
+            spi_cmd_send_index <= 6'd58;
+            spi_cmd_send_arg <= 32'h00000000;
+            spi_cmd_send_crc <= 7'b0000000; // Shouldn't be checked
+            spi_cmd_send_en <= 1;
+            state <= STATE_R3_R7_SEND;
+            next_state <= STATE_CMD58_RECV;
+         end
+         // Wait for response from CMD58, check for errors, and then
+         // check if the CCS (Card Capacity Status) flag is set. This
+         // indicates 512-byte block level addressing
+         STATE_CMD58_RECV: begin
+            if (spi_r3_r7_recv_done) begin
+               if (8'b0 == spi_r3_r7_recv_out[39:32] &&
+                   spi_r3_r7_recv_out[30]) begin
+                  state <= STATE_CALIB_WAIT;
+               end else begin
+                  state <= STATE_ERROR;
+               end
+            end
+         end
+         // Wait for memory calibration to be done, then start
+         // reading from SD card and storing in RAM
+         STATE_CALIB_WAIT: begin
+            if (calib_done) begin
+               // TODO: switch to state where we're reading data from card
+               state <= STATE_DONE;
+            end
+         end
          // Done reading from the card
          STATE_DONE: begin
-            sdc_status <= { 4'hf, spi_r1_recv_out };
+            sdc_status <= { 4'hF, spi_r3_r7_recv_out[31:24] };
             sclk_reset <= 1;
             sdcard_cs <= 1;
             done <= 1;
          end
          // There was an error reading from the SD card
          STATE_ERROR: begin
+            sdc_status <= { 4'hE, spi_r3_r7_recv_out[39:32] };
             sclk_reset <= 1;
             sdcard_cs <= 1;
             error <= 1;

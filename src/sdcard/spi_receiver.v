@@ -39,10 +39,8 @@ module spi_receiver
             STATE_IDLE: begin
                if (en) begin
                   out <= 0;
-                  if (in) begin
-                     state <= STATE_WAITING;
-                     counter <= 0;
-                  end
+                  state <= STATE_WAITING;
+                  counter <= 0;
                end
             end
             // Wait here until the input goes low, this
