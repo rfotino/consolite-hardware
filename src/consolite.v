@@ -416,6 +416,7 @@ module consolite
       .clk(clk),
       .calib_done(mcb3_calib_done),
       .disabled(uart_load_started),
+      .program_index(buf_inputs[13:6]), // Use the on board switches
       .started(sdcard_read_started),
       .done(sdcard_read_done),
       .progress(sdcard_progress),

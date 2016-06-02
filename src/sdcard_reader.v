@@ -20,6 +20,7 @@ module sdcard_reader
    input             clk,
    input             calib_done,
    input             disabled,
+   input [7:0]       program_index,
    output reg        started,
    output reg        done,
    output reg [7:0]  progress,
@@ -272,8 +273,8 @@ module sdcard_reader
          end
          // Set up the sender module to send CMD0
          STATE_CMD0_SEND: begin
-            // Change to 20 MHz clock - temporarily disabled
-            //clk_div <= 5;
+            // Change to 10 MHz clock
+            sclk_div <= 10;
             // If CS is low for CMD0 we go into SPI mode
             sdcard_cs <= 0;
             // Setup command packet
@@ -399,7 +400,7 @@ module sdcard_reader
          // Send CMD17, single block read
          STATE_CMD17_SEND: begin
             spi_cmd_send_index <= 6'd17;
-            spi_cmd_send_arg <= { 25'b0, block_addr }; // Block address
+            spi_cmd_send_arg <= { 17'b0, program_index, block_addr }; // Block address
             spi_cmd_send_crc <= 7'b0000000; // Shouldn't be checked
             spi_cmd_send_en <= 1;
             state <= STATE_R1_SEND;
