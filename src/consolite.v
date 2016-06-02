@@ -292,18 +292,24 @@ module consolite
 
    // Determines the digits for the 7-segment display,
    // based on status/error conditions
+   wire           uart_load_started;
    wire [7:0]     uart_progress;
    wire [7:0]     sdcard_progress;
+   wire           sdcard_read_started;
    wire           sdcard_error;
    wire [11:0]    processor_status;
    wire [11:0]    seg_digits;
-   wire [11:0]    sdc_status; // DEBUG ONLY
    seg_status seg_status_
      (
+      .boot_done(boot_done),
       .mem_calib_done(mcb3_calib_done),
       .mem_error(mcb3_error),
       .clear_screen_done(clear_screen_done),
-      .sdcard_error(sdcard_error),
+      .sdcard_read_started(sdcard_read_started),
+      .sdcard_read_done(sdcard_read_done),
+      .sdcard_read_error(sdcard_read_error),
+      .sdcard_progress(sdcard_progress),
+      .uart_load_started(uart_load_started),
       .uart_load_done(uart_load_done),
       .uart_progress(uart_progress),
       .processor_status(processor_status),
@@ -314,7 +320,7 @@ module consolite
    seg_display seg_display_
      (
       .clk(clk),
-      .digits(sdc_status),
+      .digits(seg_digits),
       .seven_seg(seven_seg),
       .seven_seg_en(seven_seg_en)
       );
@@ -382,7 +388,9 @@ module consolite
      (
       .clk(clk),
       .calib_done(mcb3_calib_done),
-      .load_done(uart_load_done),
+      .disabled(sdcard_read_started),
+      .started(uart_load_started),
+      .done(uart_load_done),
       .progress(uart_progress),
       .rx(uart_rx),
       .mem_cmd_en(c3_p5_cmd_en),
@@ -405,12 +413,13 @@ module consolite
    // card and writes it to RAM for the processor to execute
    sdcard_reader sdcard_reader_
      (
-      .sdc_status(sdc_status), // DEBUG ONLY
       .clk(clk),
       .calib_done(mcb3_calib_done),
+      .disabled(uart_load_started),
+      .started(sdcard_read_started),
       .done(sdcard_read_done),
       .progress(sdcard_progress),
-      .error(sdcard_error),
+      .error(sdcard_read_error),
       .sdcard_cs(sdcard_cs),
       .sdcard_sclk(sdcard_sclk),
       .sdcard_mosi(sdcard_mosi),

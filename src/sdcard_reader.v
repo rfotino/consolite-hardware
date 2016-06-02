@@ -17,9 +17,10 @@
 
 module sdcard_reader
   (
-   output reg [11:0] sdc_status, // DEBUG ONLY
    input             clk,
    input             calib_done,
+   input             disabled,
+   output reg        started,
    output reg        done,
    output reg [7:0]  progress,
    output reg        error,
@@ -29,15 +30,15 @@ module sdcard_reader
    output            sdcard_mosi,
    input             sdcard_miso,
    // Signals for writing to RAM
-   output reg        mem_cmd_en,
+   output            mem_cmd_en,
    output [2:0]      mem_cmd_instr,
    output [5:0]      mem_cmd_bl,
-   output reg [29:0] mem_cmd_byte_addr,
+   output     [29:0] mem_cmd_byte_addr,
    input             mem_cmd_empty,
    input             mem_cmd_full,
-   output reg        mem_wr_en,
+   output            mem_wr_en,
    output [3:0]      mem_wr_mask,
-   output reg [31:0] mem_wr_data,
+   output     [31:0] mem_wr_data,
    input             mem_wr_full,
    input             mem_wr_empty,
    input [6:0]       mem_wr_count,
@@ -47,25 +48,13 @@ module sdcard_reader
 
    // Give outputs their initial values
    initial begin
-      sdc_status = 12'h000;
+      started = 0;
       done = 0;
       progress = 0;
       error = 0;
       sdcard_cs = 1;
       sdcard_sclk = 1;
-      mem_cmd_en = 0;
-      mem_wr_en = 0;
    end
-
-   // Our interface with RAM is write-only, so always give the
-   // write command (000)
-   assign mem_cmd_instr = 3'b000;
-   // We always want to write 256-byte blocks to RAM, so always
-   // use a burst length of 64 32-bit chunks
-   assign mem_cmd_bl = 6'b111111;
-   // We also always want to write 32-bit chunks, so don't mask
-   // any bytes
-   assign mem_wr_mask = 4'b0000;
 
    // Divide the clock that we send to the SD card
    reg [8:0] sclk_counter = 0;
@@ -166,6 +155,38 @@ module sdcard_reader
       .done(spi_r3_r7_recv_done)
       );
 
+   // Module for receiving data blocks and storing them in RAM
+   reg [6:0]             block_addr = 0;
+   reg                   spi_data_read_en = 0;
+   wire                  spi_data_read_error;
+   wire                  spi_data_read_done;
+   spi_data_reader spi_data_reader_
+     (
+      .clk(clk),
+      .calib_done(calib_done),
+      .sclk_posedge(sclk_posedge),
+      .sclk_negedge(sclk_negedge),
+      .block_addr(block_addr),
+      .en(spi_data_read_en),
+      .in(sdcard_miso),
+      .error(spi_data_read_error),
+      .done(spi_data_read_done),
+      .mem_cmd_en(mem_cmd_en),
+      .mem_cmd_instr(mem_cmd_instr),
+      .mem_cmd_bl(mem_cmd_bl),
+      .mem_cmd_byte_addr(mem_cmd_byte_addr),
+      .mem_cmd_empty(mem_cmd_empty),
+      .mem_cmd_full(mem_cmd_full),
+      .mem_wr_en(mem_wr_en),
+      .mem_wr_mask(mem_wr_mask),
+      .mem_wr_data(mem_wr_data),
+      .mem_wr_full(mem_wr_full),
+      .mem_wr_empty(mem_wr_empty),
+      .mem_wr_count(mem_wr_count),
+      .mem_wr_underrun(mem_wr_underrun),
+      .mem_wr_error(mem_wr_error)
+      );
+
    // State machine logic for communicating with the SD card
    localparam STATE_POWER_ON    = 0;
    localparam STATE_DUMMY_CLK   = 1;
@@ -183,13 +204,15 @@ module sdcard_reader
    localparam STATE_CMD58_SEND  = 13;
    localparam STATE_CMD58_RECV  = 14;
    localparam STATE_CALIB_WAIT  = 15;
+   localparam STATE_CMD17_SEND  = 16;
+   localparam STATE_CMD17_RECV  = 17;
+   localparam STATE_DATA_RECV   = 18;
    localparam STATE_DONE        = 254;
    localparam STATE_ERROR       = 255;
    reg [7:0] state = STATE_POWER_ON;
    reg [7:0] next_state;
    reg [7:0] dummy_clk_counter = 0;
    reg [7:0] miso_ready_counter = 0;
-   reg [7:0] timeout_counter = 0;
    always @ (posedge clk) begin
       sclk_reset <= 0;
       spi_cmd_send_en <= 0;
@@ -198,7 +221,7 @@ module sdcard_reader
       spi_r1_recv_reset <= 0;
       spi_r3_r7_recv_en <= 0;
       spi_r3_r7_recv_reset <= 0;
-      sdc_status <= { sdc_status[11:10], power_on_done, sdcard_miso, state }; // DEBUG ONLY
+      spi_data_read_en <= 0;
       case (state)
          // Wait >= 1 millisecond, then send dummy clock
          STATE_POWER_ON: begin
@@ -264,7 +287,8 @@ module sdcard_reader
          end
          // Wait for response from CMD0, then verify
          STATE_CMD0_RECV: begin
-            if (spi_r1_recv_done) begin
+            if (spi_r1_recv_done && !disabled) begin
+               started <= 1;
                // Check that the response is valid
                if (8'b1 == spi_r1_recv_out) begin
                   state <= STATE_0xFF_WAIT;
@@ -368,20 +392,54 @@ module sdcard_reader
          // reading from SD card and storing in RAM
          STATE_CALIB_WAIT: begin
             if (calib_done) begin
-               // TODO: switch to state where we're reading data from card
-               state <= STATE_DONE;
+               state <= STATE_0xFF_WAIT;
+               next_state <= STATE_CMD17_SEND;
+            end
+         end
+         // Send CMD17, single block read
+         STATE_CMD17_SEND: begin
+            spi_cmd_send_index <= 6'd17;
+            spi_cmd_send_arg <= { 25'b0, block_addr }; // Block address
+            spi_cmd_send_crc <= 7'b0000000; // Shouldn't be checked
+            spi_cmd_send_en <= 1;
+            state <= STATE_R1_SEND;
+            next_state <= STATE_CMD17_RECV;
+         end
+         // Wait for response from CMD17, check for errors, then move
+         // to handle the incoming data packet
+         STATE_CMD17_RECV: begin
+            if (spi_r1_recv_done) begin
+               if (8'b0 == spi_r1_recv_out) begin
+                  spi_data_read_en <= 1;
+                  state <= STATE_DATA_RECV;
+               end else begin
+                  state <= STATE_ERROR;
+               end
+            end
+         end
+         // Handle receiving an incoming data packet, and send to RAM
+         STATE_DATA_RECV: begin
+            if (spi_data_read_error) begin
+               state <= STATE_ERROR;
+            end else if (spi_data_read_done) begin
+               progress <= progress + 2;
+               if (127 == block_addr) begin
+                  state <= STATE_DONE;
+               end else begin
+                  block_addr <= block_addr + 1;
+                  state <= STATE_0xFF_WAIT;
+                  next_state <= STATE_CMD17_SEND;
+               end
             end
          end
          // Done reading from the card
          STATE_DONE: begin
-            sdc_status <= { 4'hF, spi_r3_r7_recv_out[31:24] };
             sclk_reset <= 1;
             sdcard_cs <= 1;
             done <= 1;
          end
          // There was an error reading from the SD card
          STATE_ERROR: begin
-            sdc_status <= { 4'hE, spi_r3_r7_recv_out[39:32] };
             sclk_reset <= 1;
             sdcard_cs <= 1;
             error <= 1;

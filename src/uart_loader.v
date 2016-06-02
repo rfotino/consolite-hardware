@@ -4,7 +4,9 @@ module uart_loader
   (
    input             clk,
    input             calib_done,
-   output reg        load_done,
+   input             disabled,
+   output reg        started,
+   output reg        done,
    output [7:0]      progress,
    input             rx,
    output reg        mem_cmd_en,
@@ -35,7 +37,8 @@ module uart_loader
 
    // Initialize registers
    initial begin
-      load_done = 0;
+      started = 0;
+      done = 0;
       mem_cmd_en = 0;
       mem_wr_en = 0;
    end
@@ -74,7 +77,8 @@ module uart_loader
          // Receive 256 bytes, load them into the RAM fifo
          1: begin
             // If we just received a byte
-            if (~busy & busy_prev) begin
+            if (!busy && busy_prev && !disabled) begin
+               started <= 1;
                cur_byte <= cur_byte + 1;
                mem_wr_data <= { mem_wr_data[23:0], uart_data };
                // If we just filled up a word, send it
@@ -104,7 +108,7 @@ module uart_loader
          end
          // Send the done signal and do nothing
          3: begin
-            load_done <= 1;
+            done <= 1;
          end
       endcase
    end
