@@ -54,10 +54,10 @@ You may need to prefix this command with `sudo`. The output file, `/dev/mmcblk0`
 different for your system, so you need to check the contents of `ls /dev` before and
 after plugging in the card.
 
-To load multiple programs, you should create an image file before dding it to the SD card.
-First you need to pad each program to 64KiB, then concatenate them all together. Once the
-programs have been concatenated, the image can be written to the SD card. Suppose we have
-two files, `program1` with size 512 bytes and `program2` with size 1024 bytes:
+To load multiple programs, you may want to create an image file before dding it to the SD
+card. First you need to pad each program to 64KiB, then concatenate them all together. Once
+the programs have been concatenated, the image can be written to the SD card. Suppose we
+have two files, `program1` with size 512 bytes and `program2` with size 1024 bytes:
 
 ```sh
 # Pad files with 65536 - SIZE bytes
@@ -75,3 +75,13 @@ MimasV2 board act as an 8-bit binary number determining which program to load. I
 switches are in the 0 position when booting up Consolite, the 0th program will be loaded;
 if the switches are in the 00000001 position when booting, the 1st program will be loaded,
 etc. This allows you to have 256 different programs on the SD card ready to execute.
+
+If you want to write a single program to a certain offset on the card, you can also do
+(where N is program index):
+
+```sh
+dd bs=65536 seek=N if=PROGRAM_NAME of=/dev/mmcblk0
+```
+
+This can be useful if you want to write a single program to the SD card without modifying
+the existing programs.
