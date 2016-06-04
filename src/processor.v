@@ -116,6 +116,12 @@ module processor
       .done(divide_done)
       );
 
+   // Registers for keeping track of cycles per instruction
+   localparam CPI_BITS = 18;
+   reg [CPI_BITS-1:0] cpi_instr_counter = 0;
+   reg [12+CPI_BITS-1:0] cpi_cycle_counter = 0;
+   reg [12+CPI_BITS-1:0] cpi_cycle_counter_inc = 0;
+
    // The state machine for executing instructions
    localparam [3:0] STATE_PRE_BOOT   = 0;
    localparam [3:0] STATE_HALT       = 1;
@@ -128,10 +134,8 @@ module processor
    localparam [3:0] STATE_DIVIDE     = 8;
    reg [3:0]            state = STATE_PRE_BOOT;
    always @ (posedge clk) begin
-      // Output our state + lower bits of instruction pointer
-      if (STATE_HALT != state) begin
-         status <= { 1'b0, state, instr_ptr[7:0] };
-      end
+      cpi_cycle_counter_inc = cpi_cycle_counter + 1;
+      cpi_cycle_counter <= cpi_cycle_counter_inc;
       // Default enables to off
       cache_wr_en <= 0;
       cache_rd_en <= 0;
@@ -143,6 +147,7 @@ module processor
       case (state)
         STATE_PRE_BOOT: begin
            if (boot_done) begin
+              cpi_cycle_counter <= 0;
               state <= STATE_EXECUTING;
            end
         end
@@ -151,6 +156,11 @@ module processor
         end
         STATE_EXECUTING: begin
            if (instr_valid) begin
+              if (&cpi_instr_counter) begin
+                 status <= cpi_cycle_counter_inc[12+CPI_BITS-1:CPI_BITS];
+                 cpi_cycle_counter <= 0;
+              end
+              cpi_instr_counter <= cpi_instr_counter + 1;
               execute();
            end
         end
