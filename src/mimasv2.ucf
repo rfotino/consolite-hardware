@@ -47,14 +47,14 @@ NET "buttons[0]" LOC = K18 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST | P
 ###############################################################################
 #                           LEDs                                              #
 ###############################################################################
-#NET "LED[7]" LOC = P15 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D1
-#NET "LED[6]" LOC = P16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D2
-#NET "LED[5]" LOC = N15 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D3
-#NET "LED[4]" LOC = N16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D4
-#NET "LED[3]" LOC = U17 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D5
-#NET "LED[2]" LOC = U18 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D6
-#NET "LED[1]" LOC = T17 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D7
-#NET "LED[0]" LOC = T18 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D8
+NET "leds[7]" LOC = P15 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D1
+NET "leds[6]" LOC = P16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D2
+NET "leds[5]" LOC = N15 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D3
+NET "leds[4]" LOC = N16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D4
+NET "leds[3]" LOC = U17 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D5
+NET "leds[2]" LOC = U18 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D6
+NET "leds[1]" LOC = T17 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D7
+NET "leds[0]" LOC = T18 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST;  #D8
 
 ###############################################################################
 #                           Micro SD Card                                     #
@@ -150,8 +150,6 @@ NET "gpio_p9[0]" LOC = L16 | IOSTANDARD = LVCMOS33 | DRIVE = 8 | SLEW = FAST; #P
 ###############################################################################
 #                           LPDDR MT46H32M16XXXX-5                            #
 ###############################################################################
-NET "mcb3_calib_done"  LOC = P15 | IOSTANDARD = LVCMOS33; // LED0
-NET "mcb3_error"       LOC = P16 | IOSTANDARD = LVCMOS33; // LED1
 NET "c3_sys_rst_n"     LOC = M13 | IOSTANDARD = LVCMOS33 | PULLDOWN; // Unconnected
 
 NET "mcb3_dram_a[12]"  LOC = G6  | IOSTANDARD = MOBILE_DDR;

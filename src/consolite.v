@@ -12,6 +12,8 @@ module consolite
   (
    // 100MHz system clock
    input         clk,
+   // 8 status LEDs
+   output [7:0]  leds,
    // 7-segment display outputs
    output [7:0]  seven_seg,
    output [2:0]  seven_seg_en,
@@ -48,16 +50,27 @@ module consolite
    input         c3_sys_rst_n,
    inout         mcb3_dram_dqs,
    output        mcb3_dram_ck,
-   output        mcb3_dram_ck_n,
-   output        mcb3_calib_done,
-   input         mcb3_error
+   output        mcb3_dram_ck_n
    );
 
    // Some functions can't be started until we have booted
+   wire mcb3_calib_done;
+   wire mcb3_error;
    wire clear_screen_done;
    wire uart_load_done;
    wire sdcard_read_done;
-   wire boot_done = mcb3_calib_done & clear_screen_done & (uart_load_done | sdcard_read_done);
+   wire boot_done = mcb3_calib_done &
+                    clear_screen_done &
+                    (uart_load_done | sdcard_read_done);
+
+   // Some more status signals
+   wire           uart_load_started;
+   wire [7:0]     uart_progress;
+   wire [7:0]     sdcard_progress;
+   wire           sdcard_read_started;
+   wire           sdcard_error;
+   wire [11:0]    processor_status;
+   wire           processor_halted;
 
    // Main memory port 0 (read/write) for data cache
    wire        c3_p0_cmd_clk;
@@ -290,14 +303,20 @@ module consolite
       .rnd(rnd)
       );
 
+   // Hook up the LEDs to various status signals
+   assign leds = {
+      mcb3_calib_done,
+      mcb3_error,
+      uart_load_started & ~uart_load_done,
+      sdcard_read_started & ~sdcard_read_done,
+      sdcard_error,
+      boot_done,
+      processor_halted,
+      1'b0 // Unused 8th LED
+   };
+
    // Determines the digits for the 7-segment display,
    // based on status/error conditions
-   wire           uart_load_started;
-   wire [7:0]     uart_progress;
-   wire [7:0]     sdcard_progress;
-   wire           sdcard_read_started;
-   wire           sdcard_error;
-   wire [11:0]    processor_status;
    wire [11:0]    seg_digits;
    seg_status seg_status_
      (
@@ -519,7 +538,8 @@ module consolite
      (
       .clk(clk),
       .boot_done(boot_done),
-      .status(processor_status),
+      .status_digits(processor_status),
+      .halted(processor_halted),
       // Instruction cache
       .instr_ptr(instr_ptr),
       .instr_valid(instr_valid),

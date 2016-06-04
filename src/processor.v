@@ -11,7 +11,8 @@ module processor
   (
    input                        clk,
    input                        boot_done,
-   output reg [11:0]            status,
+   output reg [11:0]            status_digits,
+   output reg                   halted,
    // Instruction cache
    output reg [`ADDR_BITS-1:0]  instr_ptr,
    input                        instr_valid,
@@ -43,7 +44,8 @@ module processor
    // Initialize the color register and instruction pointer,
    // as well as setting all enable signals to low
    initial begin
-      status = `STATE_DEFAULT;
+      status_digits = 0;
+      halted = 0;
       instr_ptr = 0;
       cache_wr_en = 0;
       cache_wr_addr = 0;
@@ -152,12 +154,13 @@ module processor
            end
         end
         STATE_HALT: begin
-           // Do nothing
+           halted <= 1;
         end
         STATE_EXECUTING: begin
+           halted <= 0;
            if (instr_valid) begin
               if (&cpi_instr_counter) begin
-                 status <= cpi_cycle_counter_inc[12+CPI_BITS-1:CPI_BITS];
+                 status_digits <= cpi_cycle_counter_inc[12+CPI_BITS-1:CPI_BITS];
                  cpi_cycle_counter <= 0;
               end
               cpi_instr_counter <= cpi_instr_counter + 1;
@@ -489,7 +492,7 @@ module processor
            // If we get here, there was an invalid instruction so
            // we show the error and halt
            default: begin
-              status <= `STATE_INVALID_INSTR | opcode;
+              status_digits <= `STATE_INVALID_INSTR | opcode;
               state <= STATE_HALT;
            end
          endcase
