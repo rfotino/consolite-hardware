@@ -5,13 +5,14 @@
 * 64 KiB of RAM, 16-bit addresses
 * 256x192 8-bit display
 * 16 registers (16 bits each).
-* Register 0 is the stack pointer; the stack grows downward (increasing addresses)
+* Register 0 is the stack pointer; the stack grows upward (increasing addresses)
 * 8-bit color register
 * 16-bit random number generator
 * 16-bit millisecond counter
 * Flags for overflow (OF), carry (CF), zero (ZF), and sign (SF)
 * Fixed width, 32-bit instructions
 * Big endian words
+* Instruction pointer starts at 0x0000.
 
 ## Addressing Modes
 
